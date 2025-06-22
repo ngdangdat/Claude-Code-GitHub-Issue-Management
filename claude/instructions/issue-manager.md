@@ -58,29 +58,61 @@ fi
 
 ### 3. Issue割り当てロジック
 ```bash
-# 利用可能なWorkerを見つけてIssueをAssign
+# 利用可能なWorkerを見つけてIssueをAssignし、必須の環境セットアップを実行
 assign_issue() {
     local issue_number="$1"
     local issue_title="$2"
 
+    echo "=== Issue #${issue_number} 割り当て処理開始 ==="
+    echo "タイトル: ${issue_title}"
+
     # 利用可能なWorkerを探す
+    local assigned_worker=""
     for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         if [ ! -f ./tmp/worker-status/worker${worker_num}_busy.txt ]; then
-            echo "Issue #${issue_number}を@meにAssign"
-
-            # GitHub上で現在ログインしているユーザーにAssign
-            gh issue edit $issue_number --add-assignee @me
-
-            # Worker状況ファイル作成
-            echo "Issue #${issue_number}: ${issue_title}" > ./tmp/worker-status/worker${worker_num}_busy.txt
-
-            # Workerに作業指示を送信
-            setup_worker_environment $worker_num $issue_number "$issue_title"
-
+            assigned_worker="$worker_num"
             break
         fi
     done
+
+    # 利用可能なWorkerがない場合
+    if [ -z "$assigned_worker" ]; then
+        echo "❌ エラー: 利用可能なWorkerがありません"
+        echo "現在のWorker状況:"
+        check_worker_load
+        return 1
+    fi
+
+    echo "✅ Worker${assigned_worker}に割り当て開始"
+
+    # GitHub上で現在ログインしているユーザーにAssign
+    echo "GitHub Issue #${issue_number}を@meにAssign中..."
+    if ! gh issue edit $issue_number --add-assignee @me; then
+        echo "❌ エラー: GitHub Issue Assignment失敗"
+        return 1
+    fi
+
+    # Worker環境セットアップを実行（必須）
+    echo "=== Worker${assigned_worker}環境セットアップ実行（必須処理） ==="
+    if setup_worker_environment "$assigned_worker" "$issue_number" "$issue_title"; then
+        echo "✅ Issue #${issue_number}のWorker${assigned_worker}への割り当て完了"
+        echo "環境セットアップ成功: $(date)" > "./tmp/worker-status/worker${assigned_worker}_setup_success.txt"
+        return 0
+    else
+        echo "❌ エラー: Worker${assigned_worker}環境セットアップ失敗"
+        echo "GitHub Issue Assignment を取り消します..."
+
+        # GitHub Assignmentを取り消し
+        gh issue edit $issue_number --remove-assignee @me
+
+        # Worker状況ファイルがあれば削除
+        rm -f "./tmp/worker-status/worker${assigned_worker}_busy.txt"
+
+        echo "環境セットアップ失敗のためIssue #${issue_number}の割り当てを中止しました"
+        return 1
+    fi
 }
+
 ```
 
 ## Worker環境セットアップ
@@ -374,7 +406,7 @@ handle_worker_completion() {
 
     # 4. Worker状況ファイル削除（作業完了）
     rm -f ./tmp/worker-status/worker${worker_num}_busy.txt
-
+    rm -f ./tmp/worker-status/worker${worker_num}_setup_success.txt
     # 5. Worktreeクリーンアップ（必要に応じて）
     if [ -d "worktree/issue-${issue_number}" ]; then
         echo "worktree/issue-${issue_number}をクリーンアップ中..."
@@ -579,15 +611,49 @@ monitor_issues_with_filter() {
 
 ### 2. Worker負荷バランシング
 ```bash
-# Worker負荷確認
+# Worker負荷確認（環境セットアップ状況も含む）
 check_worker_load() {
     echo "=== Worker負荷状況 ==="
     for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         if [ -f ./tmp/worker-status/worker${worker_num}_busy.txt ]; then
-            echo "Worker${worker_num}: 作業中 - $(cat ./tmp/worker-status/worker${worker_num}_busy.txt)"
+            local issue_info=$(cat ./tmp/worker-status/worker${worker_num}_busy.txt)
+            local setup_status=""
+
+            if [ -f "./tmp/worker-status/worker${worker_num}_setup_success.txt" ]; then
+                local setup_time=$(cat "./tmp/worker-status/worker${worker_num}_setup_success.txt")
+                setup_status=" [環境セットアップ済み: ${setup_time}]"
+            else
+                setup_status=" [⚠️ 環境セットアップ未完了]"
+            fi
+
+            echo "Worker${worker_num}: 作業中 - ${issue_info}${setup_status}"
         else
             echo "Worker${worker_num}: 利用可能"
         fi
+    done
+}
+
+# Worker環境セットアップ状況の詳細確認
+check_worker_environment_status() {
+    echo "=== Worker環境セットアップ状況詳細 ==="
+    for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
+        echo "--- Worker${worker_num} ---"
+
+        if [ -f "./tmp/worker-status/worker${worker_num}_busy.txt" ]; then
+            local issue_info=$(cat "./tmp/worker-status/worker${worker_num}_busy.txt")
+            echo "割り当て Issue: ${issue_info}"
+
+            if [ -f "./tmp/worker-status/worker${worker_num}_setup_success.txt" ]; then
+                local setup_time=$(cat "./tmp/worker-status/worker${worker_num}_setup_success.txt")
+                echo "環境セットアップ: ✅ 成功 (${setup_time})"
+            else
+                echo "環境セットアップ: ❌ 未完了または失敗"
+                echo "⚠️  このWorkerは環境セットアップが完了していません！"
+            fi
+        else
+            echo "状況: 利用可能（待機中）"
+        fi
+        echo ""
     done
 }
 ```
@@ -609,8 +675,27 @@ monitor_issues_with_filter "assignee:@me label:bug"
 ## 重要なポイント
 - 各Workerが同時に1つのIssueのみ処理するよう厳密管理
 - GitHub IssueとPRの状況を常に把握
-- Worker環境セットアップの自動化
+- **Worker環境セットアップの強制実行と失敗時の安全な回復**
+- **環境セットアップなしでのIssue割り当てを完全防止**
 - 進捗の可視化と適切なフィードバック
 - 品質確保のためのローカル確認プロセス
 - 継続的なIssue監視と効率的な割り当て
 - **フィルタ条件を活用した効率的なIssue管理**
+
+## 使用ガイドライン
+
+### Issue割り当て時の推奨手順
+1. **必須**: `assign_issue()` を使用
+2. **推奨**: 割り当て前に `check_worker_load()` でWorker状況を確認
+3. **推奨**: 定期的に `check_worker_environment_status()` で環境セットアップ状況を確認
+
+### 環境セットアップ失敗時の対応
+1. エラーメッセージを確認し、原因を特定
+2. Workerの tmux セッション状況を確認
+3. 必要に応じて手動でセットアップ手順を実行
+4. 問題が解決したら再度 `assign_issue()` を実行
+
+### 安全性確保のためのチェックポイント
+- ✅ Worker環境セットアップが完了していることを確認
+- ✅ GitHub Issue Assignmentとworktree環境が一致していることを確認
+- ✅ 失敗時にクリーンアップが適切に実行されていることを確認
