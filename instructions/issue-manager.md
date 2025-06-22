@@ -11,6 +11,16 @@ GitHub Issueを常に監視し、効率的にWorkerに作業をアサインし�
 5. **進捗管理**: Workerからの報告を受けて、IssueとPRの状況を確認
 6. **品質管理**: 必要に応じてローカル環境での動作確認を実施
 
+## Worker設定
+### Worker数の設定
+```bash
+# Worker数を設定（デフォルト: 3）
+WORKER_COUNT=${WORKER_COUNT:-3}
+
+# Worker数確認
+echo "設定されたWorker数: $WORKER_COUNT"
+```
+
 ## Issue監視とWorker管理
 ### 1. GitHub Issue確認コマンド
 ```bash
@@ -54,7 +64,7 @@ assign_issue() {
     local issue_title="$2"
 
     # 利用可能なWorkerを探す
-    for worker_num in 1 2 3; do
+    for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         if [ ! -f ./tmp/worker-status/worker${worker_num}_busy.txt ]; then
             echo "Issue #${issue_number}を@meにAssign"
 
@@ -256,7 +266,7 @@ handle_worker_completion() {
 monitor_worker_progress() {
     echo "=== Worker進捗確認 ==="
 
-    for worker_num in 1 2 3; do
+    for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         if [ -f "./tmp/worker-status/worker${worker_num}_busy.txt" ]; then
             local issue_info=$(cat "./tmp/worker-status/worker${worker_num}_busy.txt")
             echo "Worker${worker_num}: 作業中 - ${issue_info}"
@@ -448,7 +458,7 @@ monitor_issues_with_filter() {
 # Worker負荷確認
 check_worker_load() {
     echo "=== Worker負荷状況 ==="
-    for worker_num in 1 2 3; do
+    for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         if [ -f ./tmp/worker-status/worker${worker_num}_busy.txt ]; then
             echo "Worker${worker_num}: 作業中 - $(cat ./tmp/worker-status/worker${worker_num}_busy.txt)"
         else
