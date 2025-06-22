@@ -1,14 +1,55 @@
 #!/bin/bash
 
-# 🚀 GitHub Issue Management System - 自動インストールスクリプト
-# 使用方法: curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-Communication/main/install.sh | bash
+# 🚀 GitHub Issue Management System - Enhanced Installation Script
+# Usage:
+#   curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash -s -- --ref v1.0.0
+#   curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash -s -- --ref feature-branch
 
 set -e
 
-echo "🤖 GitHub Issue Management System インストール開始"
-echo "=================================================="
+# デフォルト設定
+DEFAULT_REF="main"
+GITHUB_REF="$DEFAULT_REF"
 
-# カラー定義
+# コマンドライン引数処理
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --ref)
+            GITHUB_REF="$2"
+            shift 2
+            ;;
+        --ref=*)
+            GITHUB_REF="${1#*=}"
+            shift
+            ;;
+        -h|--help)
+            echo "使用方法:"
+            echo "  $0 [オプション]"
+            echo ""
+            echo "オプション:"
+            echo "  --ref REF     使用するGitHub ref (tag/sha/branch) [デフォルト: main]"
+            echo "  -h, --help    このヘルプを表示"
+            echo ""
+            echo "例:"
+            echo "  $0                    # mainブランチを使用"
+            echo "  $0 --ref v1.0.0       # v1.0.0タグを使用"
+            echo "  $0 --ref feature-xyz  # feature-xyzブランチを使用"
+            exit 0
+            ;;
+        *)
+            echo "不明なオプション: $1"
+            echo "ヘルプを表示するには --help を使用してください"
+            exit 1
+            ;;
+    esac
+done
+
+echo "🤖 GitHub Issue Management System - Enhanced Installation"
+echo "========================================================"
+echo "📍 使用するGitHub Ref: $GITHUB_REF"
+
+# Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -31,82 +72,72 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 前提条件チェック
+# Check prerequisites
 check_prerequisites() {
-    log_info "前提条件をチェック中..."
+    log_info "Checking prerequisites..."
 
-    # Git チェック
-    if ! command -v git &> /dev/null; then
-        log_error "Gitがインストールされていません"
+    # Check if we're in a Git repository
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        log_error "This directory is not a Git repository"
+        echo "Please run this script in a Git repository directory"
         exit 1
     fi
 
-    # tmux チェック
+    # Git check
+    if ! command -v git &> /dev/null; then
+        log_error "Git is not installed"
+        exit 1
+    fi
+
+    # tmux check
     if ! command -v tmux &> /dev/null; then
-        log_error "tmuxがインストールされていません"
+        log_error "tmux is not installed"
         echo "macOS: brew install tmux"
         echo "Ubuntu: sudo apt install tmux"
         exit 1
     fi
 
-    # gh CLI チェック
+    # gh CLI check
     if ! command -v gh &> /dev/null; then
-        log_warning "GitHub CLI (gh) がインストールされていません"
-        echo "インストール方法: https://cli.github.com/"
-        read -p "続行しますか？ (y/N): " -n 1 -r
+        log_warning "GitHub CLI (gh) is not installed"
+        echo "Installation guide: https://cli.github.com/"
+        read -p "Continue anyway? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             exit 1
         fi
     fi
 
-    log_success "前提条件チェック完了"
+    # Claude CLI check
+    if ! command -v claude &> /dev/null; then
+        log_warning "Claude CLI is not installed"
+        echo "Installation guide: https://docs.anthropic.com/en/docs/claude-code"
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    fi
+
+    log_success "Prerequisites check completed"
 }
 
-# インストール方式選択
-select_installation_method() {
-    echo ""
-    echo "📦 インストール方式を選択してください:"
-    echo "1) モジュラー構成 (推奨) - 専用ディレクトリで独立管理"
-    echo "2) CLAUDE.md統合 - 既存設定に追記"
-    echo "3) サブディレクトリ独立 - 完全独立運用"
-    echo ""
-
-    while true; do
-        read -p "選択 (1-3): " choice
-        case $choice in
-            1)
-                INSTALL_METHOD="modular"
-                log_info "モジュラー構成を選択しました"
-                break
-                ;;
-            2)
-                INSTALL_METHOD="integration"
-                log_info "CLAUDE.md統合を選択しました"
-                break
-                ;;
-            3)
-                INSTALL_METHOD="independent"
-                log_info "サブディレクトリ独立を選択しました"
-                break
-                ;;
-            *)
-                echo "1-3のいずれかを選択してください"
-                ;;
-        esac
-    done
+# Set installation method to remote only
+set_installation_method() {
+    INSTALL_METHOD="remote"
+    log_info "Using remote installation (downloading latest from GitHub)"
 }
 
-# ファイルダウンロード
+# Download files from GitHub
 download_files() {
     local target_dir="$1"
-    local base_url="https://raw.githubusercontent.com/nakamasato/Claude-Code-Communication/main"
+    local base_url="https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/$GITHUB_REF/claude"
 
-    log_info "必要ファイルをダウンロード中..."
+    log_info "Downloading files from GitHub..."
 
     mkdir -p "${target_dir}/instructions"
 
-    # ファイルリスト
+    # File list to download
     local files=(
         "instructions/issue-manager.md"
         "instructions/worker.md"
@@ -116,202 +147,145 @@ download_files() {
     )
 
     for file in "${files[@]}"; do
-        log_info "ダウンロード: $file"
+        log_info "Downloading: $file"
         curl -sSL "${base_url}/${file}" -o "${target_dir}/${file}"
 
-        # 実行権限付与（shファイルの場合）
+        # Add execute permission for shell scripts
         if [[ $file == *.sh ]]; then
             chmod +x "${target_dir}/${file}"
         fi
     done
 
-    log_success "ファイルダウンロード完了"
+    log_success "Files downloaded successfully"
 }
 
-# モジュラー構成インストール
-install_modular() {
-    log_info "モジュラー構成でインストール中..."
 
-    local target_dir=".claude-issue-manager"
-
-    # ディレクトリ作成
-    mkdir -p "$target_dir"
-
-    # ファイルダウンロード
-    download_files "$target_dir"
-
-    # CLAUDE-issue.md作成
-    cat > "${target_dir}/CLAUDE-issue.md" << 'EOF'
-# GitHub Issue Management System
-
-## エージェント構成
-- **issue-manager** (multiagent:0.0): GitHub Issue管理者
-- **worker1,2,3** (multiagent:0.1-3): Issue解決担当
-
-## あなたの役割
-- **issue-manager**: @.claude-issue-manager/instructions/issue-manager.md
-- **worker1,2,3**: @.claude-issue-manager/instructions/worker.md
-
-## メッセージ送信
-```bash
-./.claude-issue-manager/agent-send.sh [相手] "[メッセージ]"
-```
-
-## 基本フロー
-GitHub Issues → issue-manager → workers → issue-manager → GitHub PRs
-EOF
-
-    # settings.local.json 更新案内
-    cat > "${target_dir}/settings-update.json" << 'EOF'
-{
-  "permissions": {
-    "allow": [
-      "Bash(./.claude-issue-manager/agent-send.sh:*)",
-      "Bash(gh:*)",
-      "Bash(git:*)",
-      "Bash(npm:*)",
-      "Bash(yarn:*)",
-      "Bash(pip:*)",
-      "Bash(open:*)",
-      "Bash(xdg-open:*)",
-      "Bash(kill:*)",
-      "Bash(sleep:*)",
-      "Bash(cd:*)",
-      "Bash(pwd:*)",
-      "Bash(basename:*)",
-      "Bash(head:*)",
-      "Bash(grep:*)",
-      "Bash(cat:*)",
-      "Bash(rm:*)"
-    ]
-  }
-}
-EOF
-
-    log_success "モジュラー構成インストール完了"
-
-    echo ""
-    echo "📋 次の手順:"
-    echo "1. .claude/settings.local.json に以下の権限を追加:"
-    echo "   cat ${target_dir}/settings-update.json"
-    echo ""
-    echo "2. tmux環境セットアップ:"
-    echo "   ./${target_dir}/setup.sh"
-    echo ""
-    echo "3. Claude起動:"
-    echo "   claude --file ${target_dir}/CLAUDE-issue.md"
-}
-
-# CLAUDE.md統合インストール
-install_integration() {
-    log_info "CLAUDE.md統合でインストール中..."
-
-    # instructionsディレクトリに配置
-    download_files "."
-
-    # CLAUDE.md統合内容作成
-    cat > "claude-issue-integration.md" << 'EOF'
+# Store CLAUDE.md content for display
+get_claude_content() {
+    cat << 'EOF'
 
 ---
 
 # GitHub Issue Management System
 
-## エージェント構成（Issue管理用）
-- **issue-manager** (multiagent:0.0): GitHub Issue管理者
-- **worker1,2,3** (multiagent:0.1-3): Issue解決担当
-
-## Issue管理モード切り替え
-```bash
-# Issue管理モードに切り替える場合
-./agent-send.sh issue-manager "あなたはissue-managerです。指示書に従ってGitHub Issueの監視を開始してください"
-```
-
-## 関連ファイル
-- Issue Manager: @instructions/issue-manager.md
-- Workers: @instructions/worker.md
-EOF
-
-    log_success "統合用ファイル準備完了"
-
-    echo ""
-    echo "📋 次の手順:"
-    echo "1. 以下の内容をCLAUDE.mdに追記:"
-    echo "   cat claude-issue-integration.md"
-    echo ""
-    echo "2. settings.local.jsonに権限追加が必要です"
-    echo "   詳細は INSTALLATION.md を参照"
-}
-
-# 独立インストール
-install_independent() {
-    log_info "サブディレクトリ独立でインストール中..."
-
-    local target_dir="issue-management"
-
-    # ディレクトリ作成
-    mkdir -p "$target_dir"
-
-    # ファイルダウンロード
-    download_files "$target_dir"
-
-    # 独立用のCLAUDE.md作成
-    cp CLAUDE.md "${target_dir}/" 2>/dev/null || cat > "${target_dir}/CLAUDE.md" << 'EOF'
-# GitHub Issue Management System
-
 ## エージェント構成
 - **issue-manager** (multiagent:0.0): GitHub Issue管理者
-- **worker1,2,3** (multiagent:0.1-3): Issue解決担当
+- **worker1-N** (multiagent:0.1-N): Issue解決担当（Nはsetup.shで指定、デフォルト3）
 
 ## あなたの役割
-- **issue-manager**: @instructions/issue-manager.md
-- **worker1,2,3**: @instructions/worker.md
+- **issue-manager**: @claude/instructions/issue-manager.md
+- **worker1-N**: @claude/instructions/worker.md
 
 ## メッセージ送信
 ```bash
-./agent-send.sh [相手] "[メッセージ]"
+./claude/agent-send.sh [相手] "[メッセージ]"
 ```
 
 ## 基本フロー
 GitHub Issues → issue-manager → workers → issue-manager → GitHub PRs
 EOF
-
-    log_success "独立ディレクトリインストール完了"
-
-    echo ""
-    echo "📋 次の手順:"
-    echo "1. issue-managementディレクトリに移動:"
-    echo "   cd issue-management"
-    echo ""
-    echo "2. tmux環境セットアップ:"
-    echo "   ./setup.sh"
-    echo ""
-    echo "3. Claude起動:"
-    echo "   claude"
 }
 
-# メイン実行
+# Update .gitignore
+update_gitignore() {
+    log_info "Updating .gitignore..."
+
+    local gitignore_entries=(
+        "# GitHub Issue Management System"
+        "worktree/"
+        "tmp/"
+        "logs/"
+        ""
+    )
+
+    local gitignore_file=".gitignore"
+
+    # Create .gitignore if it doesn't exist
+    touch "$gitignore_file"
+
+    # Check if entries already exist
+    local needs_update=false
+    for entry in "${gitignore_entries[@]}"; do
+        if [ -n "$entry" ] && ! grep -Fxq "$entry" "$gitignore_file"; then
+            needs_update=true
+            break
+        fi
+    done
+
+    if [ "$needs_update" = true ]; then
+        echo "" >> "$gitignore_file"
+        for entry in "${gitignore_entries[@]}"; do
+            echo "$entry" >> "$gitignore_file"
+        done
+        log_success ".gitignore updated"
+    else
+        log_info ".gitignore already up to date"
+    fi
+}
+
+# Main installation process
+install_system() {
+    local target_dir="claude"
+
+    # Check if target directory exists
+    if [ -d "$target_dir" ]; then
+        log_warning "Directory 'claude' already exists"
+        read -p "Overwrite existing installation? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Installation cancelled"
+            exit 0
+        fi
+        rm -rf "$target_dir"
+    fi
+
+    # Create target directory
+    mkdir -p "$target_dir"
+
+    # Download files from GitHub
+    download_files "$target_dir"
+
+    # Update .gitignore
+    update_gitignore
+
+    log_success "GitHub Issue Management System installed successfully!"
+}
+
+# Display post-installation instructions
+show_post_install_instructions() {
+    echo ""
+    echo "🎉 Installation Complete!"
+    echo "======================="
+    echo ""
+    echo "📁 Files installed in: ./claude/"
+    echo ""
+    echo "📋 Next steps:"
+    echo ""
+    echo "1. 📄 Add the following content to your CLAUDE.md file:"
+    echo ""
+    echo "======== CLAUDE.md Content Start ========"
+    get_claude_content
+    echo "======== CLAUDE.md Content End ========"
+    echo ""
+    echo "2. 🔧 Setup tmux environment:"
+    echo "   ./claude/setup.sh"
+    echo ""
+    echo "3. 🚀 Start Claude Code with:"
+    echo "   claude"
+    echo ""
+    echo "4. 📊 Begin GitHub Issue management:"
+    echo "   あなたはissue-managerです。指示書に従ってGitHub Issueの監視を開始してください。"
+    echo ""
+    echo "✨ The system is ready to use!"
+}
+
+# Main execution
 main() {
     check_prerequisites
-    select_installation_method
-
-    case $INSTALL_METHOD in
-        "modular")
-            install_modular
-            ;;
-        "integration")
-            install_integration
-            ;;
-        "independent")
-            install_independent
-            ;;
-    esac
-
-    echo ""
-    log_success "🎉 GitHub Issue Management System インストール完了！"
-    echo ""
-    echo "📚 詳細な使用方法:"
-    echo "   https://github.com/nakamasato/Claude-Code-Communication/blob/main/INSTALLATION.md"
+    set_installation_method
+    install_system
+    show_post_install_instructions
 }
 
-# スクリプト実行
+# Run the script
 main "$@"

@@ -157,25 +157,76 @@ graph TB
 - Claude Code CLI
 - gh CLI（GitHub CLI）
 
-### 手順
+### Usage
 
-#### 1️⃣ ダウンロード（30秒）
+#### 1️⃣ インストール
+**対象のGitレポでインストール**
 ```bash
-gh repo clone nakamasato/Claude-Code-GitHub-Issue−Management
-cd Claude-Code-GitHub-Issue−Management
+# 最新版（mainブランチ）
+curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash
+
+# 特定のバージョン（タグ指定）
+GITHUB_REF=v1.0.0
+curl -sSL "https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/$GITHUB_REF/install.sh" | bash -s -- --ref "$GITHUB_REF"
 ```
 
-#### 2️⃣ 環境構築（1分）
+![](install.gif)
+
+インストール完了後のファイル構成：
+```
+your-project/
+├── claude/                     # GitHub Issue管理システム
+│   ├── instructions/
+│   │   ├── issue-manager.md   # Issue Manager指示書
+│   │   └── worker.md          # Worker指示書
+│   ├── agent-send.sh          # エージェント間通信スクリプト
+│   ├── setup.sh               # tmux環境セットアップ
+│   └── local-verification.md  # ローカル動作確認手順
+├── CLAUDE.md                   # メイン設定ファイル（要手動追記）
+└── .gitignore                  # 自動更新（worktree/,tmp/,logs/追加）
+```
+
+**CLAUDE.mdに設定を追加**
+
+インストール後に表示される内容をCLAUDE.mdファイルに追記してください：
+
+````markdown
+---
+
+# GitHub Issue Management System
+
+## エージェント構成
+- **issue-manager** (multiagent:0.0): GitHub Issue管理者
+- **worker1-N** (multiagent:0.1-N): Issue解決担当（Nはsetup.shで指定、デフォルト3）
+
+## あなたの役割
+- **issue-manager**: @claude/instructions/issue-manager.md
+- **worker1-N**: @claude/instructions/worker.md
+
+## メッセージ送信
 ```bash
-./setup.sh          # デフォルト: 3 workers
+./claude/agent-send.sh [相手] "[メッセージ]"
+```
+
+## 基本フロー
+GitHub Issues → issue-manager → workers → issue-manager → GitHub PRs
+````
+
+> [!WARNING]
+> **この時点で一度コミットしてmainへPushしてください。**
+> issue-managerとworkerは常に最新mainから始めるためにmain branchにこれらのscriptとinstructionが入っている必要があります。
+
+#### 2️⃣ 環境構築
+```bash
+./claude/setup.sh          # デフォルト: 3 workers
 # または
-./setup.sh 5        # 5 workers
+./claude/setup.sh 5        # 5 workers
 ```
 これでバックグラウンドに指定した数のターミナル画面が準備されます！
 
 Claude Codeは既に全ペインで起動済みです！ブラウザでのClaude認証が必要な場合があります。
 
-#### 3️⃣ Issue Manager画面を開いてAI起動（2分）
+#### 3️⃣ Issue Manager画面を開いてAI起動
 
 **Issue Manager画面を開く：**
 ```bash
@@ -191,7 +242,7 @@ tmux attach-session -t multiagent
 └─────────────┴─────────────┘
 ```
 
-#### 4️⃣ GitHub Issue管理開始（30秒）
+#### 4️⃣ GitHub Issue管理開始
 
 Issue Manager画面で入力(defaultでは assignee:@me のissueが対象)：
 ```
@@ -208,6 +259,12 @@ Issue Manager画面で入力(defaultでは assignee:@me のissueが対象)：
 2. 新しいIssueが作成されるとWorkerにアサイン
 3. WorkerがIssue解決とPR作成
 4. Issue Managerが確認・品質管理
+
+#### 🗑️ アンインストール
+```bash
+# GitHub Issue管理システムを削除
+rm -rf ./claude
+```
 
 ## 🏢 登場人物（エージェント）
 
@@ -233,13 +290,13 @@ Issue Manager画面で入力(defaultでは assignee:@me のissueが対象)：
 
 ### メッセージの送り方
 ```bash
-./agent-send.sh [相手の名前] "[メッセージ]"
+./claude/agent-send.sh [相手の名前] "[メッセージ]"
 
 # 例：Issue Managerに送る
-./agent-send.sh issue-manager "GitHub Issue確認をお願いします"
+./claude/agent-send.sh issue-manager "GitHub Issue確認をお願いします"
 
 # 例：Worker1に送る
-./agent-send.sh worker1 "Issue #123をアサインしました"
+./claude/agent-send.sh worker1 "Issue #123をアサインしました"
 ```
 
 ### 実際のやり取りの例
@@ -295,10 +352,10 @@ PR #45 を作成済みです。
 
 ## 📁 重要なファイルの説明
 
-### 指示書（instructions/）
+### 指示書（claude/instructions/）
 各エージェントの行動マニュアルです
 
-**issue-manager.md** - Issue Manager指示書
+**claude/instructions/issue-manager.md** - Issue Manager指示書
 ```markdown
 # あなたの役割
 GitHub Issueを常に監視し、効率的にWorkerに作業をアサインして
@@ -312,7 +369,7 @@ GitHub Issueを常に監視し、効率的にWorkerに作業をアサインし�
 5. 進捗管理: 報告受信とPR確認
 ```
 
-**worker.md** - Worker指示書
+**claude/instructions/worker.md** - Worker指示書
 ```markdown
 # あなたの役割
 GitHub Issueの解決を専門とする開発者として、
