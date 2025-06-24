@@ -1,23 +1,23 @@
 # 🤖 Claude Code GitHub Issue Management
 
-GitHub Issueを自動管理する、AI駆動の開発ワークフローシステムです。
+An AI-driven development workflow system for automated GitHub Issue management.
 
-[Claude Code エージェント通信システム](https://github.com/Akira-Papa/Claude-Code-Communication)にヒントを得て、もともと手元でやっていたGitHub Issueを作ってそれをClaude Codeに解決してもらうやり方をAI Workerで実行できるようにしました。
+Inspired by the [Claude Code Agent Communication System](https://github.com/Akira-Papa/Claude-Code-Communication), this system takes the approach of creating GitHub Issues locally and having Claude Code resolve them, now enabling AI Workers to execute this workflow.
 
 ## Demo
 
 ![](demo.gif)
 
-**機能**
-1. GitHub Issueを自動監視・管理するAI Issue Managerと複数のWorkerが協力（デフォルト3、setup.shで指定可能）
-2. IssueがオープンされるとWorkerに自動アサイン、解決後に自動PR作成
-3. 完全自動化されたGitHub Issue → PR → マージのワークフロー
+**Features**
+1. AI Issue Manager and multiple Workers collaborate for automated GitHub Issue monitoring and management (default 3, configurable in setup.sh)
+2. Automatic Worker assignment when Issues are opened, and automatic PR creation after resolution
+3. Fully automated GitHub Issue → PR → Merge workflow
 
-**システムの特徴：**
-- 🔄 GitHub Issue自動監視・アサイン
-- 🚀 Git worktreeを使った並列開発
-- 📝 自動PR作成とIssue進捗コメント
-- ⚡ 複数Issue同時処理（worker数に応じて、デフォルト最大3件）
+**System Characteristics:**
+- 🔄 Automatic GitHub Issue monitoring and assignment
+- 🚀 Parallel development using Git worktree
+- 📝 Automatic PR creation and Issue progress comments
+- ⚡ Multiple concurrent Issue processing (up to max 3 by default, based on worker count)
 
 ## Architecture
 
@@ -29,30 +29,30 @@ graph TB
     PRs[🔀 Pull Requests]
 
     %% AI Agents
-    IssueManager[🎯 Issue Manager<br/>GitHub Issue監視・調整]
-    Worker1[👷 Worker1<br/>Issue解決専門]
-    Worker2[👷 Worker2<br/>Issue解決専門]
-    Worker3[👷 Worker3<br/>Issue解決専門]
+    IssueManager[🎯 Issue Manager<br/>GitHub Issue monitoring & coordination]
+    Worker1[👷 Worker1<br/>Issue resolution specialist]
+    Worker2[👷 Worker2<br/>Issue resolution specialist]
+    Worker3[👷 Worker3<br/>Issue resolution specialist]
 
     %% Development Environment
     MainBranch[🌳 main branch]
-    Worktree1[🌿 worktree-1<br/>独立作業環境]
-    Worktree2[🌿 worktree-2<br/>独立作業環境]
-    Worktree3[🌿 worktree-3<br/>独立作業環境]
+    Worktree1[🌿 worktree-1<br/>independent work environment]
+    Worktree2[🌿 worktree-2<br/>independent work environment]
+    Worktree3[🌿 worktree-3<br/>independent work environment]
 
     %% Terminal Environment
-    Tmux[📺 tmux session<br/>4分割画面]
+    Tmux[📺 tmux session<br/>4-panel display]
     ClaudeCLI[🤖 Claude CLI<br/>--dangerously-skip-permissions]
 
     %% Workflow Process
-    NewIssue[🆕 新しいIssue作成]
-    IssueMonitoring[👁️ Issue監視]
-    WorkerAssign[📋 Worker自動アサイン]
-    Analysis[🔍 Issue内容分析]
-    Implementation[⚙️ 実装・テスト]
-    PRCreation[📝 PR作成]
-    QualityCheck[✅ 品質確認]
-    Merge[🎯 マージ承認]
+    NewIssue[🆕 New Issue creation]
+    IssueMonitoring[👁️ Issue monitoring]
+    WorkerAssign[📋 Automatic Worker assignment]
+    Analysis[🔍 Issue content analysis]
+    Implementation[⚙️ Implementation & Testing]
+    PRCreation[📝 PR creation]
+    QualityCheck[✅ Quality verification]
+    Merge[🎯 Merge approval]
 
     %% Connections - GitHub Integration
     GitHub --> Issues
@@ -140,111 +140,111 @@ graph TB
 
 ## Getting Started
 
-### Prerequisite
-- Mac または Linux
-- tmux（ターミナル分割ツール）: `brew install tmux`
+### Prerequisites
+- Mac or Linux
+- tmux (terminal splitting tool): `brew install tmux`
 
     `~/.tmux.conf`:
 
     ```
-    # マウス操作を有効にする
+    # Enable mouse operations
     set-option -g mouse on
 
-    # ダブルクリックでタイルレイアウトに変更
+    # Switch to tiled layout on double-click
     bind -n DoubleClick1Pane select-layout tiled
     ```
 
-    詳細設定: [.tmux](.tmux/README.md)
+    Detailed configuration: [.tmux](.tmux/README.md)
 
 - Claude Code CLI
-- gh CLI（GitHub CLI）
+- gh CLI (GitHub CLI)
 
 ### Usage
 
-#### 1️⃣ インストール
-**対象のGitレポでインストール**
+#### 1️⃣ Installation
+**Install in target Git repository**
 ```bash
-# 最新版（mainブランチ）
+# Latest version (main branch)
 curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash
 
-# 特定のバージョン（タグ指定）
+# Specific version (tag specification)
 GITHUB_REF=v1.0.0
 curl -sSL "https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/$GITHUB_REF/install.sh" | bash -s -- --ref "$GITHUB_REF"
 ```
 
 ![](install.gif)
 
-インストール完了後のファイル構成：
+File structure after installation:
 ```
 your-project/
-├── claude/                     # GitHub Issue管理システム
+├── claude/                     # GitHub Issue management system
 │   ├── instructions/
-│   │   ├── issue-manager.md   # Issue Manager指示書
-│   │   └── worker.md          # Worker指示書
-│   ├── agent-send.sh          # エージェント間通信スクリプト
-│   ├── setup.sh               # tmux環境セットアップ
-│   └── local-verification.md  # ローカル動作確認手順
-├── CLAUDE.md                   # メイン設定ファイル（要手動追記）
-└── .gitignore                  # 自動更新（worktree/,tmp/,logs/追加）
+│   │   ├── issue-manager.md   # Issue Manager instructions
+│   │   └── worker.md          # Worker instructions
+│   ├── agent-send.sh          # Inter-agent communication script
+│   ├── setup.sh               # tmux environment setup
+│   └── local-verification.md  # Local verification procedures
+├── CLAUDE.md                   # Main configuration file (manual addition required)
+└── .gitignore                  # Auto-updated (worktree/, tmp/, logs/ added)
 ```
 
-**CLAUDE.mdに設定を追加**
+**Add configuration to CLAUDE.md**
 
-インストール後に表示される内容をCLAUDE.mdファイルに追記してください：
+Please add the content displayed after installation to your CLAUDE.md file:
 
 ````markdown
 ---
 
 # GitHub Issue Management System
 
-## エージェント構成
-- **issue-manager** (multiagent:0.0): GitHub Issue管理者
-- **worker1-N** (multiagent:0.1-N): Issue解決担当（Nはsetup.shで指定、デフォルト3）
+## Agent Configuration
+- **issue-manager** (multiagent:0.0): GitHub Issue Manager
+- **worker1-N** (multiagent:0.1-N): Issue Resolution Workers (N specified in setup.sh, default 3)
 
-## あなたの役割
+## Your Role
 - **issue-manager**: @claude/instructions/issue-manager.md
 - **worker1-N**: @claude/instructions/worker.md
 
-## メッセージ送信
+## Message Sending
 ```bash
-./claude/agent-send.sh [相手] "[メッセージ]"
+./claude/agent-send.sh [recipient] "[message]"
 ```
 
-## 基本フロー
+## Basic Flow
 GitHub Issues → issue-manager → workers → issue-manager → GitHub PRs
 ````
 
 > [!WARNING]
-> **この時点で一度コミットしてmainへPushしてください。**
-> issue-managerとworkerは常に最新mainから始めるためにmain branchにこれらのscriptとinstructionが入っている必要があります。
+> **Please commit and push to main at this point.**
+> The issue-manager and workers always start from the latest main, so these scripts and instructions need to be in the main branch.
 
-#### 2️⃣ 環境構築
+#### 2️⃣ Environment Setup
 ```bash
-./claude/setup.sh          # デフォルト: 3 workers
+./claude/setup.sh          # Default: 3 workers
 
-# Worker数を指定
+# Specify number of workers
 ./claude/setup.sh 5        # 5 workers
 
-# Claude引数を指定（ヘルプ表示）
+# Specify Claude arguments (show help)
 ./claude/setup.sh --help
 
-# Claude引数を指定した実行例
-ISSUE_MANAGER_ARGS='' WORKER_ARGS='' ./claude/setup.sh                   # Claude引数なしで実行
+# Example execution with Claude arguments
+ISSUE_MANAGER_ARGS='' WORKER_ARGS='' ./claude/setup.sh                   # Run without Claude arguments
 ISSUE_MANAGER_ARGS='--model claude-3-5-sonnet-20241022' \
-WORKER_ARGS='--model claude-3-5-sonnet-20241022' ./claude/setup.sh      # 特定のモデルを指定
+WORKER_ARGS='--model claude-3-5-sonnet-20241022' ./claude/setup.sh      # Specify particular model
 ```
-これでバックグラウンドに指定した数のターミナル画面が準備されます！
+This prepares the specified number of terminal windows in the background!
 
-Claude Codeは既に全ペインで起動済みです！ブラウザでのClaude認証が必要な場合があります。
+Claude Code is already running in all panes! Browser authentication for Claude may be required.
 
-#### 3️⃣ Issue Manager画面を開いてAI起動
+#### 3️⃣ Open Issue Manager screen and start AI
 
-**Issue Manager画面を開く：**
+**Open Issue Manager screen:**
 ```bash
 tmux attach-session -t multiagent
 ```
 
-指定したworker数に応じた分割画面が表示されます（デフォルト: issue-manager + 3 workers）：
+A split screen corresponding to the specified number of workers will be displayed (default: issue-manager + 3 workers):
 ```
 ┌─────────────┬─────────────┐
 │issue-manager│   worker1   │
@@ -253,307 +253,303 @@ tmux attach-session -t multiagent
 └─────────────┴─────────────┘
 ```
 
-#### 4️⃣ GitHub Issue管理開始
+#### 4️⃣ Start GitHub Issue Management
 
-Issue Manager画面で入力(defaultでは assignee:@me のissueが対象)：
+Input in Issue Manager screen (default targets issues with assignee:@me):
 ```
-あなたはissue-managerです。指示書に従ってGitHub Issueの監視を開始してください。
-```
-
-対象Issueを絞る場合:
-```
-あなたはissue-managerです。指示書に従ってGitHub Issueの監視を開始してください。対象とするissueの条件は、未アサイン且つbugラベルのissueです。
+You are the issue-manager. Please start monitoring GitHub Issues according to the instructions.
 ```
 
-**すると自動的に：**
-1. Issue ManagerがGitHub Issueを監視
-2. 新しいIssueが作成されるとWorkerにアサイン
-3. WorkerがIssue解決とPR作成
-4. Issue Managerが確認・品質管理
+To narrow down target Issues:
+```
+You are the issue-manager. Please start monitoring GitHub Issues according to the instructions. The target issue condition is unassigned issues with bug labels.
+```
 
-#### 🗑️ アンインストール
+**Then automatically:**
+1. Issue Manager monitors GitHub Issues
+2. When new Issues are created, they are assigned to Workers
+3. Workers resolve Issues and create PRs
+4. Issue Manager performs verification and quality management
+
+#### 🗑️ Uninstallation
 ```bash
-# GitHub Issue管理システムを削除
+# Remove GitHub Issue management system
 rm -rf ./claude
 ```
 
-## 🏢 登場人物（エージェント）
+## 🏢 Characters (Agents)
 
 ### 🎯 Issue Manager
-- **役割**: GitHub Issue管理・Worker調整
-- **機能**:
-  - Issue監視とアサイン
-  - Worker環境セットアップ
-  - PR確認と品質管理
-  - ローカル動作確認
-- **口癖**: 「Issue #123をWorker1にアサインしました」
+- **Role**: GitHub Issue management and Worker coordination
+- **Functions**:
+  - Issue monitoring and assignment
+  - Worker environment setup
+  - PR verification and quality management
+  - Local operation verification
+- **Catchphrase**: "Assigned Issue #123 to Worker1"
 
-### 👷 Worker1〜N（デフォルト3、setup.shで指定可能）
-- **役割**: Issue解決専門エンジニア
-- **機能**:
-  - Git worktree環境構築
-  - Issue内容分析と実装
-  - PR作成とIssueコメント
-  - テスト実行と品質確保
-- **口癖**: 「Issue #123の解決が完了しました」
+### 👷 Worker1~N (default 3, configurable in setup.sh)
+- **Role**: Issue resolution specialist engineer
+- **Functions**:
+  - Git worktree environment setup
+  - Issue content analysis and implementation
+  - PR creation and Issue comments
+  - Test execution and quality assurance
+- **Catchphrase**: "Issue #123 resolution completed"
 
-## 💬 どうやってコミュニケーションする？
+## 💬 How Do They Communicate?
 
-### メッセージの送り方
+### How to Send Messages
 ```bash
-./claude/agent-send.sh [相手の名前] "[メッセージ]"
+./claude/agent-send.sh [recipient name] "[message]"
 
-# 例：Issue Managerに送る
-./claude/agent-send.sh issue-manager "GitHub Issue確認をお願いします"
+# Example: Send to Issue Manager
+./claude/agent-send.sh issue-manager "Please check GitHub Issues"
 
-# 例：Worker1に送る
-./claude/agent-send.sh worker1 "Issue #123をアサインしました"
+# Example: Send to Worker1
+./claude/agent-send.sh worker1 "Assigned Issue #123"
 ```
 
-### 実際のやり取りの例
+### Example of Actual Communication
 
-**Issue Manager → Worker：**
+**Issue Manager → Worker:**
 ```
-あなたはworker1です。
+You are worker1.
 
 【GitHub Issue Assignment】
 Issue #123: Add dark mode toggle feature
 
-以下の手順で作業環境をセットアップしてください：
+Please set up the work environment with the following steps:
 
-1. Git環境の準備
+1. Git environment preparation
    git checkout main
    git pull origin main
    mkdir -p worktree
 
-   # 既存のworktreeがあるかチェック
+   # Check if existing worktree exists
    if [ -d "worktree/issue-123" ]; then
-     echo "既存のworktree/issue-123を使用します"
+     echo "Using existing worktree/issue-123"
      cd worktree/issue-123
    else
-     echo "新しいworktreeを作成します"
+     echo "Creating new worktree"
      git worktree add worktree/issue-123 -b issue-123
      cd worktree/issue-123
    fi
 
-2. Issue詳細確認
+2. Issue details verification
    gh issue view 123
 
-3. タスクリスト作成と実装開始
+3. Create task list and start implementation
 
-進捗や質問があれば随時報告してください。
+Please report progress or questions as needed.
 ```
 
-**Worker → Issue Manager：**
+**Worker → Issue Manager:**
 ```
-【Issue #123 完了報告】Worker1
+【Issue #123 Completion Report】Worker1
 
-## 実装内容
-- ダークモード切り替えボタンを追加
-- CSS変数を使用したテーマシステム実装
-- ローカルストレージでユーザー設定保存
+## Implementation Details
+- Added dark mode toggle button
+- Implemented theme system using CSS variables
+- Save user settings to localStorage
 
 ## Pull Request
-PR #45 を作成済みです。
-- ブランチ: issue-123
-- テスト: 全て通過
+PR #45 has been created.
+- Branch: issue-123
+- Tests: All passed
 
-次のIssueがあればアサインをお願いします！
+Please assign the next Issue if available!
 ```
 
-## 📁 重要なファイルの説明
+## 📁 Important File Descriptions
 
-### 指示書（claude/instructions/）
-各エージェントの行動マニュアルです
+### Instructions (claude/instructions/)
+Behavior manuals for each agent
 
-**claude/instructions/issue-manager.md** - Issue Manager指示書
+**claude/instructions/issue-manager.md** - Issue Manager Instructions
 ```markdown
-# あなたの役割
-GitHub Issueを常に監視し、効率的にWorkerに作業をアサインして
-プロジェクトを進行管理する
+# Your Role
+Monitor GitHub Issues continuously and efficiently assign work to Workers
+to manage project progress
 
-## 基本動作フロー
-1. Issue監視: GitHub Issue一覧をチェック
-2. Worker管理: 各Workerの作業状況を把握
-3. Issue割り当て: 適切なWorkerにAssign
-4. 環境準備: Workerの開発環境セットアップ
-5. 進捗管理: 報告受信とPR確認
+## Basic Operation Flow
+1. Issue monitoring: Check GitHub Issue list
+2. Worker management: Track each Worker's work status
+3. Issue assignment: Assign to appropriate Worker
+4. Environment preparation: Worker development environment setup
+5. Progress management: Receive reports and check PRs
 ```
 
-**claude/instructions/worker.md** - Worker指示書
+**claude/instructions/worker.md** - Worker Instructions
 ```markdown
-# あなたの役割
-GitHub Issueの解決を専門とする開発者として、
-Issue Managerからアサインされたタスクを効率的に実行
+# Your Role
+As a developer specializing in GitHub Issue resolution,
+efficiently execute tasks assigned by Issue Manager
 
-## 実行フロー
-1. 環境セットアップ: Git worktreeとブランチ作成
-2. Issue分析: 内容理解とタスク化
-3. 実装とテスト: 段階的な機能実装
-4. PR作成と報告: Pull Request作成と完了報告
+## Execution Flow
+1. Environment setup: Git worktree and branch creation
+2. Issue analysis: Content understanding and task creation
+3. Implementation and testing: Gradual feature implementation
+4. PR creation and reporting: Pull Request creation and completion report
 ```
 
 ### CLAUDE.md
-システム全体の設定ファイル
+System-wide configuration file
 ```markdown
 # GitHub Issue Management System
 
-## エージェント構成
-- issue-manager: GitHub Issue管理者
-- worker1,2,3: Issue解決担当
+## Agent Configuration
+- issue-manager: GitHub Issue Manager
+- worker1,2,3: Issue Resolution Workers
 
-## 基本フロー
+## Basic Flow
 GitHub Issues → issue-manager → workers → GitHub PRs
 ```
 
-## 🎯 GitHub Issue管理のワークフロー
+## 🎯 GitHub Issue Management Workflow
 
-### 典型的なフロー
-1. **Issue作成**: 開発者がGitHub上でIssueを作成
-2. **自動監視**: Issue ManagerがIssue一覧を定期監視
-3. **Worker割り当て**: 空いているWorkerにIssueをアサイン
-4. **環境準備**: Workerに自動で環境セットアップ指示
-5. **Issue解決**: WorkerがIssue内容を分析し実装
-6. **PR作成**: Workerが完了時に自動でPull Request作成
-7. **品質確認**: Issue ManagerがPRとIssueを確認
-8. **完了処理**: マージ後、次のIssueを割り当て
+### Typical Flow
+1. **Issue Creation**: Developer creates Issue on GitHub
+2. **Automatic Monitoring**: Issue Manager periodically monitors Issue list
+3. **Worker Assignment**: Assign Issue to available Worker
+4. **Environment Preparation**: Automatically instruct Worker to set up environment
+5. **Issue Resolution**: Worker analyzes Issue content and implements
+6. **PR Creation**: Worker automatically creates Pull Request upon completion
+7. **Quality Verification**: Issue Manager verifies PR and Issue
+8. **Completion Processing**: After merge, assign next Issue
 
-### サポートする機能
-- ✅ **並列処理**: 最大3つのIssueを同時に処理
-- ✅ **Git worktree**: ブランチごとに独立した作業環境
-- ✅ **自動コメント**: Issue進捗の自動記録
-- ✅ **品質管理**: ローカル確認とテスト実行
+### Supported Features
+- ✅ **Parallel Processing**: Process up to 3 Issues simultaneously
+- ✅ **Git worktree**: Independent work environment for each branch
+- ✅ **Automatic Comments**: Automatic recording of Issue progress
+- ✅ **Quality Management**: Local verification and test execution
 
-## 🌿 Git Worktree管理システム
+## 🌿 Git Worktree Management System
 
-### Worktreeの使用目的
-GitHub Issue管理システムでは、各IssueごとにGit worktreeを作成し、並列開発を可能にします。
+### Purpose of Worktree Usage
+The GitHub Issue management system creates Git worktree for each Issue, enabling parallel development.
 
-### 🛡️ Worker安全環境の強化
-Issue #6で実装された重要な安全対策：
+### 🛡️ Worker Safe Environment Enhancement
+Important safety measures implemented in Issue #6:
 
-#### Worker環境分離
-- **Claude起動制御**: setup.shはissue-managerのみClaude起動、workersは待機状態
-- **自動worktree移行**: Issue割り当て時にworkerを自動的にworktreeディレクトリに移行
-- **プロセス検出**: `pane_current_command`でClaude実行状態を正確に判定
-- **安全終了**: agent-send.shによるClaude安全終了でシェル終了を防止
+#### Worker Environment Isolation
+- **Claude Launch Control**: setup.sh launches Claude only for issue-manager, workers are in standby state
+- **Automatic worktree Migration**: Automatically migrate worker to worktree directory when Issue is assigned
+- **Process Detection**: Accurately determine Claude execution state with `pane_current_command`
+- **Safe Exit**: Prevent shell termination through safe Claude exit via agent-send.sh
 
-#### 動作フロー
+#### Operation Flow
 ```bash
-# 初期状態（setup.sh実行後）
-issue-manager: Claude起動済み（rootディレクトリ）
-worker1-N: 待機メッセージ表示（Claudeは未起動）
+# Initial state (after setup.sh execution)
+issue-manager: Claude launched (root directory)
+worker1-N: Standby message displayed (Claude not launched)
 
-# Issue割り当て時
-1. worktree作成/確認
-2. workerプロセス状態確認（zsh/node）
-   - zsh → 直接Claude起動
-   - node → agent-send.sh でexit → Claude再起動
-3. worktreeディレクトリに移動
-4. Claude再起動
+# During Issue assignment
+1. Create/verify worktree
+2. Check worker process state (zsh/node)
+   - zsh → Launch Claude directly
+   - node → Exit via agent-send.sh → Restart Claude
+3. Move to worktree directory
+4. Restart Claude
 
-# Issue完了時
-1. workerプロセス状態確認
-2. Claude安全終了（実行中の場合）
-3. rootディレクトリに復帰
-4. 待機状態に戻る
+# Upon Issue completion
+1. Check worker process state
+2. Safe Claude exit (if running)
+3. Return to root directory
+4. Return to standby state
 ```
 
-#### セキュリティメリット
-- **mainブランチ保護**: workerが誤ってrootディレクトリで作業することを防止
-- **環境完全分離**: 各Issueが独立したworktree環境で実行
-- **自動復旧**: Issue完了時にworkerが自動的にクリーンな状態に復帰
+#### Security Benefits
+- **Main Branch Protection**: Prevent worker from accidentally working in root directory
+- **Complete Environment Isolation**: Each Issue executes in independent worktree environment
+- **Automatic Recovery**: Worker automatically returns to clean state upon Issue completion
 
-### Worktreeディレクトリ構造
+### Worktree Directory Structure
 ```
 project-root/
 ├── .git/
 ├── main-code-files...
-├── worktree/               # Worktree専用ディレクトリ
-│   ├── issue-123/         # Issue #123用の作業環境
-│   ├── issue-456/         # Issue #456用の作業環境
-│   └── issue-789/         # Issue #789用の作業環境
-└── .gitignore             # worktree/が自動追加される
+├── worktree/               # Worktree dedicated directory
+│   ├── issue-123/         # Work environment for Issue #123
+│   ├── issue-456/         # Work environment for Issue #456
+│   └── issue-789/         # Work environment for Issue #789
+└── .gitignore             # worktree/ automatically added
 ```
 
 > [!NOTE]
-> `setup.sh`で`worktree/`を`.gitignore`に追加します。
+> `setup.sh` adds `worktree/` to `.gitignore`.
 
-### Worktreeライフサイクル
+### Worktree Lifecycle
 
-1. **作成**:
-   - 既存worktreeディレクトリをチェック (`-d "worktree/issue-XXX"`)
-   - 存在する場合：既存worktreeにcdして継続
-   - 存在しない場合：`git worktree add worktree/issue-XXX -b issue-XXX`
-2. **開発**: 独立した環境でIssue解決作業
-3. **確認**: Issue Managerによる品質チェック
-4. **削除**: `git worktree remove worktree/issue-XXX --force`
+1. **Creation**:
+   - Check existing worktree directory (`-d "worktree/issue-XXX"`)
+   - If exists: cd to existing worktree and continue
+   - If not exists: `git worktree add worktree/issue-XXX -b issue-XXX`
+2. **Development**: Issue resolution work in independent environment
+3. **Verification**: Quality check by Issue Manager
+4. **Deletion**: `git worktree remove worktree/issue-XXX --force`
 
-### セキュリティとメリット
+### Security and Benefits
 
-#### Claude Codeセキュリティ準拠
-- **子ディレクトリ制限**: `worktree/`は子ディレクトリなので安全
-- **パス制限回避**: `../`パスを使用しない設計
+#### Claude Code Security Compliance
+- **Subdirectory Restriction**: `worktree/` is a subdirectory so it's safe
+- **Path Restriction Avoidance**: Design that doesn't use `../` paths
 
-#### 開発効率向上
-- **並列開発**: 最大3つのIssue同時処理
-- **環境分離**: 各Issueで完全に独立した環境
-- **依存関係隔離**: 異なるパッケージバージョンでも競合なし
-- **ブランチ管理**: 自動的な`issue-XXX`ブランチ作成
+#### Development Efficiency Improvement
+- **Parallel Development**: Process up to 3 Issues simultaneously
+- **Environment Isolation**: Completely independent environment for each Issue
+- **Dependency Isolation**: No conflicts even with different package versions
+- **Branch Management**: Automatic `issue-XXX` branch creation
 
-#### 自動管理
-- **`.gitignore`自動更新**: `worktree/`エントリの自動追加
-- **ディレクトリ作成**: セットアップ時の自動作成
-- **自動クリーンアップ**: Issue完了時の自動削除
+#### Automatic Management
+- **Automatic `.gitignore` Update**: Automatic addition of `worktree/` entry
+- **Directory Creation**: Automatic creation during setup
+- **Automatic Cleanup**: Automatic deletion upon Issue completion
 
+### Troubleshooting
 
-
-### トラブルシューティング
-
-#### Worktreeが残ってしまった場合
+#### When Worktree Remains
 ```bash
-# 手動クリーンアップ
+# Manual cleanup
 git worktree list
 git worktree remove worktree/issue-XXX --force
 rm -rf worktree/issue-XXX
 ```
 
+## 🔧 When in Trouble
 
-
-## 🔧 困ったときは
-
-### Q: エージェントが反応しない
+### Q: Agent doesn't respond
 ```bash
-# 状態を確認
+# Check status
 tmux ls
 
-# 再起動
+# Restart
 ./setup.sh
 ```
 
-### Q: メッセージが届かない
+### Q: Messages don't arrive
 ```bash
-# ログを見る
+# Check logs
 cat logs/send_log.txt
 
-# 手動でテスト
-./agent-send.sh issue-manager "テスト"
-./agent-send.sh worker1 "テスト"
+# Manual test
+./agent-send.sh issue-manager "Test"
+./agent-send.sh worker1 "Test"
 ```
 
-### Q: 最初からやり直したい
+### Q: Want to start over
 ```bash
-# 全部リセット
+# Reset everything
 tmux kill-server
 rm -rf ./tmp/*
 ./setup.sh
 ```
 
-## 🚀 GitHub Issueを作成してテストする
+## 🚀 Create GitHub Issues for Testing
 
-### 簡単な例：GitHub Issue作成とワークフロー
+### Simple Example: GitHub Issue Creation and Workflow
 
-1. **GitHub上でIssueを作成**：
+1. **Create Issue on GitHub**:
 ```
 Title: Add TODO list feature
 Description:
@@ -562,117 +558,117 @@ Description:
 - Save to localStorage
 ```
 
-2. **Issue Managerが自動で動作**：
+2. **Issue Manager automatically operates**:
 ```bash
-# Issue Managerで確認
-./agent-send.sh issue-manager "GitHub Issueの監視を開始してください"
+# Verify with Issue Manager
+./agent-send.sh issue-manager "Please start monitoring GitHub Issues"
 ```
 
-3. **自動実行される流れ**：
-   - Issue Managerが新しいIssueを検出
-   - 空いているWorkerにアサイン
-   - WorkerがIssue解決とPR作成
-   - Issue ManagerがPR確認
+3. **Automatically executed flow**:
+   - Issue Manager detects new Issue
+   - Assign to available Worker
+   - Worker resolves Issue and creates PR
+   - Issue Manager verifies PR
 
-## 📊 システムの仕組み（図解）
+## 📊 System Mechanism (Illustrated)
 
-### 画面構成
+### Screen Layout
 ```
 ┌─────────────┬─────────────┐
-│issue-manager│   worker1   │ ← Issue Manager（緑）とWorker1（青）
+│issue-manager│   worker1   │ ← Issue Manager (green) and Worker1 (blue)
 ├─────────────┼─────────────┤
-│   worker2   │   worker3   │ ← Worker2と3（青）
+│   worker2   │   worker3   │ ← Worker2 and 3 (blue)
 └─────────────┴─────────────┘
 ```
 
-### GitHub Issue管理の流れ
+### GitHub Issue Management Flow
 ```
 GitHub Issues
- ↓ 「Issue #123作成」
+ ↓ "Issue #123 created"
 Issue Manager
- ↓ 「Worker1に割り当て」
+ ↓ "Assign to Worker1"
 Worker1
- ↓ 「Issue解決、PR作成」
+ ↓ "Resolve Issue, create PR"
 Issue Manager
- ↓ 「PR確認・品質チェック」
+ ↓ "Verify PR, quality check"
 GitHub PR Merge
 ```
 
-### 進捗管理の仕組み
+### Progress Management Mechanism
 ```
 ./tmp/worker-status/
-├── worker1_busy.txt     # Worker1の作業中Issueを記録
-├── worker2_busy.txt     # Worker2の作業中Issueを記録
-├── worker3_busy.txt     # Worker3の作業中Issueを記録
-└── worker*_progress.log # 各Workerの進捗記録
+├── worker1_busy.txt     # Record Worker1's active Issue
+├── worker2_busy.txt     # Record Worker2's active Issue
+├── worker3_busy.txt     # Record Worker3's active Issue
+└── worker*_progress.log # Progress record for each Worker
 ```
 
-## 💡 なぜこれがすごいの？
+## 💡 Why is This Amazing?
 
-### 従来のIssue管理
+### Traditional Issue Management
 ```
-開発者 → Issue作成 → 手動割り当て → 個別実装 → 手動PR → レビュー
-```
-
-### AIワークフローシステム
-```
-開発者 → Issue作成 → AI自動監視 → AI自動割り当て → AI並列実装 → AI自動PR → AI品質確認
+Developer → Create Issue → Manual assignment → Individual implementation → Manual PR → Review
 ```
 
-**メリット：**
-- 🔄 **完全自動化**: Issue発見からPR作成まで自動
-- ⚡ **並列処理**: 3つのIssueを同時に処理可能
-- 🎯 **専門特化**: 各AI WorkerがIssue解決に特化
-- 📊 **透明性**: GitHub上で全プロセスが可視化
+### AI Workflow System
+```
+Developer → Create Issue → AI auto-monitoring → AI auto-assignment → AI parallel implementation → AI auto-PR → AI quality verification
+```
 
-## 🎓 もっと詳しく知りたい人へ
+**Benefits:**
+- 🔄 **Complete Automation**: Automatic from Issue discovery to PR creation
+- ⚡ **Parallel Processing**: Can process 3 Issues simultaneously
+- 🎯 **Specialized Focus**: Each AI Worker specializes in Issue resolution
+- 📊 **Transparency**: All processes visualized on GitHub
 
-### GitHub Issue作成のベストプラクティス
+## 🎓 For Those Who Want to Learn More
 
-**良いIssue例：**
+### GitHub Issue Creation Best Practices
+
+**Good Issue Example:**
 ```
 Title: Add user authentication feature
 
 Description:
-## 要件
-- ユーザー登録・ログイン機能
-- JWTトークンベース認証
-- パスワード暗号化
+## Requirements
+- User registration and login functionality
+- JWT token-based authentication
+- Password encryption
 
 ## Acceptance Criteria
-- [ ] 新規ユーザー登録ができる
-- [ ] 既存ユーザーがログインできる
-- [ ] 認証状態が維持される
+- [ ] New users can register
+- [ ] Existing users can log in
+- [ ] Authentication state is maintained
 
-## 技術仕様
-- 使用技術: Node.js, bcrypt, JWT
-- DB: user テーブル追加
+## Technical Specifications
+- Technology: Node.js, bcrypt, JWT
+- DB: Add user table
 ```
 
-**悪いIssue例：**
+**Bad Issue Example:**
 ```
-ログイン機能作って
+Create login functionality
 ```
 
-**Issue監視間隔を変更：**
+**Change Issue monitoring interval:**
 ```bash
-# instructions/issue-manager.md の中の
-sleep 600  # 10分を5分に変更するなら
+# In instructions/issue-manager.md
+sleep 600  # Change 10 minutes to 5 minutes
 sleep 300
 ```
 
-## 🌟 まとめ
+## 🌟 Summary
 
-このGitHub Issue管理システムは、AI協調による開発ワークフローで：
-- 🔄 **Issue → PR完全自動化**
-- ⚡ **最大3件の並列Issue処理**
-- 🎯 **Git worktreeによる効率的開発**
-- 📊 **GitHub上での透明な進捗管理**
+This GitHub Issue management system provides AI-collaborative development workflow with:
+- 🔄 **Complete Issue → PR automation**
+- ⚡ **Up to 3 parallel Issue processing**
+- 🎯 **Efficient development with Git worktree**
+- 📊 **Transparent progress management on GitHub**
 
-GitHub Issueの管理を自動化し、開発効率を劇的に向上させます！
+Automate GitHub Issue management and dramatically improve development efficiency!
 
 ---
 
-**作者**: [GitHub](https://github.com/nishimoto265/Claude-Code-Communication)
-**ライセンス**: MIT
-**質問**: [Issues](https://github.com/nishimoto265/Claude-Code-Communication/issues)へどうぞ！
+**Author**: [GitHub](https://github.com/nishimoto265/Claude-Code-Communication)
+**License**: MIT
+**Questions**: Please visit [Issues](https://github.com/nishimoto265/Claude-Code-Communication/issues)!
