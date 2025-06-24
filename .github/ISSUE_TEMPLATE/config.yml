@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/nakamasato/Claude-Code-GitHub-Issue-Management#readme
+    about: Check the README for installation and usage instructions
+  - name: 💬 Discussions
+    url: https://github.com/nakamasato/Claude-Code-GitHub-Issue-Management/discussions
+    about: Ask questions, share ideas, or discuss the project with the community
+  - name: 🔧 Troubleshooting
+    url: https://github.com/nakamasato/Claude-Code-GitHub-Issue-Management#troubleshooting
+    about: Common issues and solutions for the GitHub Issue Management System
