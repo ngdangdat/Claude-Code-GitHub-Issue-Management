@@ -1,0 +1,116 @@
+name: Enhancement
+description: Suggest an improvement to existing functionality
+title: "[Enhancement]: "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an enhancement! Please provide detailed information about how we can improve existing functionality.
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behavior
+      description: Describe how the feature currently works
+      placeholder: What does the current implementation do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-improvement
+    attributes:
+      label: Proposed Enhancement
+      description: Describe the specific improvement you'd like to see
+      placeholder: How should this be enhanced?
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Benefits
+      description: What benefits would this enhancement provide?
+      placeholder: |
+        - Improved performance
+        - Better user experience
+        - Reduced complexity
+        - Better error handling
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component needs enhancement?
+      options:
+        - Issue Manager Logic
+        - Worker Assignment System
+        - Git Worktree Operations
+        - Inter-agent Communication
+        - Error Handling
+        - Logging/Monitoring
+        - Documentation
+        - Setup Process
+        - GitHub Integration
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact Level
+      description: What is the expected impact of this enhancement?
+      options:
+        - High - Significantly improves core functionality
+        - Medium - Noticeable improvement to user experience
+        - Low - Minor improvement or quality of life change
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-ideas
+    attributes:
+      label: Implementation Ideas
+      description: If you have ideas about how this could be implemented, please share them
+      placeholder: Optional technical suggestions or approaches
+
+  - type: textarea
+    id: backward-compatibility
+    attributes:
+      label: Backward Compatibility
+      description: Would this enhancement affect existing users or require migration?
+      placeholder: Consider if this would break existing workflows or configurations
+
+  - type: textarea
+    id: testing-considerations
+    attributes:
+      label: Testing Considerations
+      description: How should this enhancement be tested to ensure it works correctly?
+      placeholder: |
+        - Unit tests for...
+        - Integration tests for...
+        - Manual testing scenarios...
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information, examples, or context
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing enhancement requests to avoid duplicates
+          required: true
+        - label: I have clearly described the current behavior and proposed enhancement
+          required: true
+        - label: I have considered the impact on existing users and functionality
+          required: true
