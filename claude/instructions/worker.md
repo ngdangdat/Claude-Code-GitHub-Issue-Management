@@ -49,152 +49,152 @@ As a developer specializing in GitHub Issue resolution, efficiently execute task
 - Impact on users
 - Technical necessity
 
-### HOW（どう実装するか）
-- 技術的アプローチ
-- 使用するライブラリ・フレームワーク
-- 実装手順
+### HOW (How to implement)
+- Technical approach
+- Libraries and frameworks to use
+- Implementation procedures
 
-### ACCEPTANCE CRITERIA（受け入れ基準）
-- 完了条件
-- テスト要件
-- 品質基準
+### ACCEPTANCE CRITERIA (Acceptance criteria)
+- Completion conditions
+- Test requirements
+- Quality standards
 ```
 
-### 2. Issue解決タスクリストテンプレート
+### 2. Issue Resolution Task List Template
 ```markdown
-## Issue #[NUMBER] 解決タスク
+## Issue #[NUMBER] Resolution Tasks
 
-### 【環境確認フェーズ】
-- [ ] 現在のworktree環境確認 (issue-[NUMBER])
-- [ ] ブランチとディレクトリ状態確認
-- [ ] 依存関係インストール確認
-- [ ] Issue詳細確認とAcceptance Criteria理解
+### 【Environment Verification Phase】
+- [ ] Verify current worktree environment (issue-[NUMBER])
+- [ ] Check branch and directory status
+- [ ] Verify dependency installation
+- [ ] Confirm Issue details and understand Acceptance Criteria
 
-### 【実装フェーズ】
-- [ ] 技術調査と設計
-- [ ] コア機能実装
-- [ ] エラーハンドリング
-- [ ] テストケース作成
+### 【Implementation Phase】
+- [ ] Technical research and design
+- [ ] Core functionality implementation
+- [ ] Error handling
+- [ ] Test case creation
 
-### 【品質確保フェーズ】
-- [ ] 単体テスト実行
-- [ ] 統合テスト実行
-- [ ] コードレビュー
-- [ ] パフォーマンス確認
+### 【Quality Assurance Phase】
+- [ ] Execute unit tests
+- [ ] Execute integration tests
+- [ ] Code review
+- [ ] Performance verification
 
-### 【完了フェーズ】
-- [ ] Pull Request作成
-- [ ] Issue進捗コメント
-- [ ] Issue Manager報告
+### 【Completion Phase】
+- [ ] Create Pull Request
+- [ ] Add Issue progress comments
+- [ ] Report to Issue Manager
 ```
 
-## GitHub Issue解決の実装手法
-### 1. 環境セットアップコマンド
+## GitHub Issue Resolution Implementation Methods
+### 1. Environment Setup Commands
 ```bash
-# Issue解決用の作業環境確認（既にworktree環境で起動済み）
+# Verify work environment for Issue resolution (already started in worktree environment)
 verify_issue_environment() {
     local issue_number="$1"
 
-    echo "=== Issue #${issue_number} 環境確認開始 ==="
+    echo "=== Issue #${issue_number} environment verification started ==="
 
-    # 1. 現在のディレクトリと作業環境を確認
-    echo "現在のディレクトリ: $(pwd)"
-    echo "現在のブランチ: $(git branch --show-current)"
-    echo "作業ツリーの状態:"
+    # 1. Check current directory and work environment
+    echo "Current directory: $(pwd)"
+    echo "Current branch: $(git branch --show-current)"
+    echo "Working tree status:"
     git status --short
 
-    # 2. worktree環境であることを確認
+    # 2. Verify that this is a worktree environment
     local current_dir=$(pwd)
     if [[ $current_dir == *"worktree/issue-${issue_number}"* ]]; then
-        echo "✅ 正しいworktree環境で動作中です"
+        echo "✅ Operating in correct worktree environment"
 
-        # 追加の安全性チェック
+        # Additional safety checks
         local git_dir=$(git rev-parse --git-dir)
         if [[ $git_dir == *".git/worktrees/"* ]]; then
-            echo "✅ worktreeが正しく分離されています: $git_dir"
+            echo "✅ Worktree is properly isolated: $git_dir"
         else
-            echo "❌ 危険: worktreeが適切に分離されていません"
-            echo "作業を停止し、Issue Managerに報告してください"
+            echo "❌ Danger: Worktree is not properly isolated"
+            echo "Stop work and report to Issue Manager"
             return 1
         fi
 
-        # mainブランチでないことを確認
+        # Verify not on main branch
         local current_branch=$(git branch --show-current)
         if [ "$current_branch" = "main" ]; then
-            echo "❌ 危険: mainブランチで作業しようとしています"
-            echo "作業を停止し、Issue Managerに報告してください"
+            echo "❌ Danger: Attempting to work on main branch"
+            echo "Stop work and report to Issue Manager"
             return 1
         fi
 
-        echo "✅ 現在のブランチ: $current_branch"
+        echo "✅ Current branch: $current_branch"
     else
-        echo "❌ 危険: 期待されるworktree環境ではありません"
-        echo "期待されるパス: */worktree/issue-${issue_number}"
-        echo "現在のパス: $current_dir"
-        echo "作業を停止し、Issue Managerに報告してください"
+        echo "❌ Danger: Not in expected worktree environment"
+        echo "Expected path: */worktree/issue-${issue_number}"
+        echo "Current path: $current_dir"
+        echo "Stop work and report to Issue Manager"
         return 1
     fi
 
-    # 2. 依存関係インストール（設定可能なスクリプトを実行）
+    # 2. Install dependencies (execute configurable script)
     ./claude/setup_environment_command.sh
 
-    # 3. Issue詳細確認
-    echo "=== Issue詳細 ==="
+    # 3. Check Issue details
+    echo "=== Issue Details ==="
     gh issue view ${issue_number}
 
-    echo "=== 環境確認完了 ==="
+    echo "=== Environment verification completed ==="
 }
 ```
 
-### 2. Issue進捗報告とコメント
+### 2. Issue Progress Reporting and Comments
 ```bash
-# GitHub Issueへの進捗コメント
+# Progress comments to GitHub Issue
 update_issue_progress() {
     local issue_number="$1"
     local status="$2"
     local details="$3"
 
-    local comment="## 🔄 進捗報告 - $(date '+%Y-%m-%d %H:%M')
+    local comment="## 🔄 Progress Report - $(date '+%Y-%m-%d %H:%M')
 
-**ステータス**: ${status}
+**Status**: ${status}
 
-**実施内容**:
+**Implementation Details**:
 ${details}
 
-**次のステップ**:
-- [予定している次の作業]
+**Next Steps**:
+- [Planned next work]
 
 ---
-*Worker${WORKER_NUM} による自動更新*"
+*Automatic update by Worker${WORKER_NUM}*"
 
     gh issue comment ${issue_number} --body "$comment"
 }
 
-# Issue Manager への問題報告
+# Problem reporting to Issue Manager
 report_to_manager() {
     local issue_number="$1"
     local problem="$2"
 
-    ./claude/agent-send.sh issue-manager "【Issue #${issue_number} 課題報告】Worker${WORKER_NUM}
+    ./claude/agent-send.sh issue-manager "【Issue #${issue_number} Problem Report】Worker${WORKER_NUM}
 
-    ## 発生した問題
+    ## Problem Occurred
     ${problem}
 
-    ## 現在の状況
-    - 実装進捗: [X%]
-    - 影響範囲: [説明]
+    ## Current Status
+    - Implementation progress: [X%]
+    - Impact scope: [description]
 
-    ## 対応方針
-    - [提案する解決策]
+    ## Response Plan
+    - [Proposed solution]
 
-    アドバイスをお願いします。"
+    Please provide advice."
 }
 ```
 
-## Pull Request作成と完了報告
-### 1. Pull Request作成
+## Pull Request Creation and Completion Report
+### 1. Pull Request Creation
 ```bash
-# PR作成とIssue完了処理
+# PR creation and Issue completion processing
 create_pr_and_complete() {
     local issue_number="$1"
     local pr_title="$2"

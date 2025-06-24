@@ -220,7 +220,7 @@ GitHub Issues → issue-manager → workers → issue-manager → GitHub PRs
 
 #### 2️⃣ Environment Setup
 ```bash
-./claude/setup.sh          # デフォルト: 3 workers
+./claude/setup.sh          # Default: 3 workers
 
 # Specify number of workers
 ./claude/setup.sh 5        # 5 workers
@@ -301,7 +301,7 @@ rm -rf ./claude
 
 ### How to Send Messages
 ```bash
-./claude/agent-send.sh [相手の名前] "[メッセージ]"
+./claude/agent-send.sh [recipient name] "[message]"
 
 # Example: Send to Issue Manager
 ./claude/agent-send.sh issue-manager "Please check GitHub Issues"
@@ -314,7 +314,7 @@ rm -rf ./claude
 
 **Issue Manager → Worker：**
 ```
-あなたはworker1です。
+You are worker1.
 
 【GitHub Issue Assignment】
 Issue #123: Add dark mode toggle feature
@@ -346,7 +346,7 @@ Please report progress or questions as needed.
 
 **Worker → Issue Manager：**
 ```
-【Issue #123 完了報告】Worker1
+【Issue #123 Completion Report】Worker1
 
 ## Implementation
 - Added dark mode toggle button

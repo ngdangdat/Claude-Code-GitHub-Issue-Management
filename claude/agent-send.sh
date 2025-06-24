@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 🚀 Agent間メッセージ送信スクリプト
+# 🚀 Inter-agent Message Sending Script
 
-# エージェント→tmuxターゲット マッピング
+# Agent→tmux target mapping
 get_agent_target() {
     case "$1" in
         "issue-manager") echo "multiagent:0.0" ;;
@@ -28,17 +28,17 @@ Available Agents:
   worker1-N     - Issue Resolution Workers (N up to configured worker count)
 
 Examples:
-  $0 issue-manager "GitHub Issue確認をお願いします"
-  $0 worker1 "Issue #123をアサインしました"
-  $0 worker5 "Issue解決完了しました"
+  $0 issue-manager "Please check GitHub Issues"
+  $0 worker1 "Assigned Issue #123"
+  $0 worker5 "Issue resolution completed"
 EOF
 }
 
-# エージェント一覧表示
+# Display agent list
 show_agents() {
-    echo "📋 利用可能なエージェント:"
+    echo "📋 Available Agents:"
     echo "=========================="
-    echo "  issue-manager → multiagent:0.0  (GitHub Issue管理者)"
+    echo "  issue-manager → multiagent:0.0  (GitHub Issue Manager)"
 
     # tmuxセッションから実際のpane数を取得して表示
     if tmux has-session -t multiagent 2>/dev/null; then
@@ -46,14 +46,14 @@ show_agents() {
         local worker_count=$((pane_count - 1))
 
         for ((i=1; i<=worker_count; i++)); do
-            printf "  worker%-7s → multiagent:0.%-2s (Issue解決担当者#%s)\n" "$i" "$i" "$i"
+            printf "  worker%-7s → multiagent:0.%-2s (Issue Resolution Worker #%s)\n" "$i" "$i" "$i"
         done
     else
-        echo "  (multiagentセッションが見つかりません - setup.shを実行してください)"
+        echo "  (multiagent session not found - please run setup.sh)"
     fi
 }
 
-# ログ記録
+# Log recording
 log_send() {
     local agent="$1"
     local message="$2"
@@ -63,47 +63,47 @@ log_send() {
     echo "[$timestamp] $agent: SENT - \"$message\"" >> logs/send_log.txt
 }
 
-# メッセージ送信
+# Send message
 send_message() {
     local target="$1"
     local message="$2"
 
-    echo "📤 送信中: $target ← '$message'"
+    echo "📤 Sending: $target ← '$message'"
 
-    # Claude Codeのプロンプトを一度クリア
+    # Clear Claude Code prompt once
     tmux send-keys -t "$target" C-c
     sleep 0.3
 
-    # メッセージ送信
+    # Send message
     tmux send-keys -t "$target" "$message"
     sleep 0.1
 
-    # エンター押下
+    # Press Enter
     tmux send-keys -t "$target" C-m
     sleep 0.5
 }
 
-# ターゲット存在確認
+# Check target existence
 check_target() {
     local target="$1"
     local session_name="${target%%:*}"
 
     if ! tmux has-session -t "$session_name" 2>/dev/null; then
-        echo "❌ セッション '$session_name' が見つかりません"
+        echo "❌ Session '$session_name' not found"
         return 1
     fi
 
     return 0
 }
 
-# メイン処理
+# Main processing
 main() {
     if [[ $# -eq 0 ]]; then
         show_usage
         exit 1
     fi
 
-    # --listオプション
+    # --list option
     if [[ "$1" == "--list" ]]; then
         show_agents
         exit 0
@@ -117,28 +117,28 @@ main() {
     local agent_name="$1"
     local message="$2"
 
-    # エージェントターゲット取得
+    # Get agent target
     local target
     target=$(get_agent_target "$agent_name")
 
     if [[ -z "$target" ]]; then
-        echo "❌ エラー: 不明なエージェント '$agent_name'"
-        echo "利用可能エージェント: $0 --list"
+        echo "❌ Error: Unknown agent '$agent_name'"
+        echo "Available agents: $0 --list"
         exit 1
     fi
 
-    # ターゲット確認
+    # Check target
     if ! check_target "$target"; then
         exit 1
     fi
 
-    # メッセージ送信
+    # Send message
     send_message "$target" "$message"
 
-    # ログ記録
+    # Record log
     log_send "$agent_name" "$message"
 
-    echo "✅ 送信完了: $agent_name に '$message'"
+    echo "✅ Send completed: $agent_name with '$message'"
 
     return 0
 }

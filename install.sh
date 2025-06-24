@@ -169,20 +169,20 @@ get_claude_content() {
 
 # GitHub Issue Management System
 
-## エージェント構成
-- **issue-manager** (multiagent:0.0): GitHub Issue管理者
-- **worker1-N** (multiagent:0.1-N): Issue解決担当（Nはsetup.shで指定、デフォルト3）
+## Agent Configuration
+- **issue-manager** (multiagent:0.0): GitHub Issue Manager
+- **worker1-N** (multiagent:0.1-N): Issue Resolution Workers (N specified in setup.sh, default 3)
 
-## あなたの役割
+## Your Role
 - **issue-manager**: @claude/instructions/issue-manager.md
 - **worker1-N**: @claude/instructions/worker.md
 
-## メッセージ送信
+## Message Sending
 ```bash
-./claude/agent-send.sh [相手] "[メッセージ]"
+./claude/agent-send.sh [recipient] "[message]"
 ```
 
-## 基本フロー
+## Basic Flow
 GitHub Issues → issue-manager → workers → issue-manager → GitHub PRs
 EOF
 }
@@ -275,7 +275,7 @@ show_post_install_instructions() {
     echo "   claude"
     echo ""
     echo "4. 📊 Begin GitHub Issue management:"
-    echo "   あなたはissue-managerです。指示書に従ってGitHub Issueの監視を開始してください。"
+    echo "   You are the issue-manager. Please start monitoring GitHub Issues according to the instructions."
     echo ""
     echo "✨ The system is ready to use!"
 }

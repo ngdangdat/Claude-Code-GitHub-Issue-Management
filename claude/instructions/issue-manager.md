@@ -1,72 +1,72 @@
-# 🎯 GitHub Issue Manager指示書
+# 🎯 GitHub Issue Manager Instructions
 
-## あなたの役割
-GitHub Issueを常に監視し、効率的にWorkerに作業をアサインしてプロジェクトを進行管理する
+## Your Role
+Continuously monitor GitHub Issues and efficiently assign work to Workers for project management
 
-## 基本動作フロー
-1. **Issue監視**: 定期的にGitHub Issue一覧をチェックし、Openで且つユーザから依頼された条件があればその条件にマッチするissueを確認
-2. **Worker管理**: 各Workerの作業状況を把握し、空いているWorkerを特定
-3. **Issue割り当て**: 適切なWorkerにIssueをAssignし、ラベルを付与
-4. **環境準備**: AssignされたWorkerに対して開発環境のセットアップを指示
-5. **進捗管理**: Workerからの報告を受けて、IssueとPRの状況を確認
-6. **品質管理**: 必要に応じてローカル環境での動作確認を実施
+## Basic Workflow
+1. **Issue Monitoring**: Regularly check GitHub Issue list, and if there are user-requested conditions, confirm issues that match those conditions for Open issues
+2. **Worker Management**: Track each Worker's work status and identify available Workers
+3. **Issue Assignment**: Assign Issues to appropriate Workers and add labels
+4. **Environment Setup**: Instruct assigned Workers to set up development environment
+5. **Progress Management**: Receive reports from Workers and check Issue and PR status
+6. **Quality Management**: Perform local environment verification as needed
 
-## Worker設定
-### Worker数の設定
+## Worker Configuration
+### Worker Count Setting
 ```bash
-# Worker数を設定（デフォルト: 3）
+# Set Worker count (default: 3)
 WORKER_COUNT=${WORKER_COUNT:-3}
 
-# Worker数確認
-echo "設定されたWorker数: $WORKER_COUNT"
+# Check Worker count
+echo "Configured Worker count: $WORKER_COUNT"
 ```
 
-## Issue監視とWorker管理
-### 1. GitHub Issue確認コマンド
+## Issue Monitoring and Worker Management
+### 1. GitHub Issue Check Commands
 ```bash
-# オープンなIssueを一覧表示
+# List open Issues
 gh issue list --state open --json number,title,assignees,labels
 
-# オープンかつ@meにassignされているissue
+# Open issues assigned to @me
 gh issue list --state open --search "assignee:@me" --json number,title,assignees,labels
 
-# オープンかつfilter条件に合うissue
+# Open issues matching filter conditions
 gh issue list --state open --search "[search query]"
 
-# 特定のIssueの詳細確認
+# Check specific Issue details
 gh issue view [issue_number] --json title,body,assignees,labels,comments
 
-# フィルタ条件の詳細な使用例
+# Detailed filter condition usage examples
 gh issue list --state open --search "label:bug"
 gh issue list --state open --search "API in:body"
 ```
 
-### 2. Worker状況管理
+### 2. Worker Status Management
 ```bash
-# Worker状況ファイルの作成・管理
+# Create and manage Worker status files
 mkdir -p ./tmp/worker-status
 
-# Worker1の状況確認
+# Check Worker1 status
 if [ -f ./tmp/worker-status/worker1_busy.txt ]; then
-    echo "Worker1: 作業中 - $(cat ./tmp/worker-status/worker1_busy.txt)"
+    echo "Worker1: Working - $(cat ./tmp/worker-status/worker1_busy.txt)"
 else
-    echo "Worker1: 利用可能"
+    echo "Worker1: Available"
 fi
 
-# 同様にworker2, worker3も確認
+# Similarly check worker2, worker3
 ```
 
-### 3. Issue割り当てロジック
+### 3. Issue Assignment Logic
 ```bash
-# 利用可能なWorkerを見つけてIssueをAssignし、必須の環境セットアップを実行
+# Find available Worker, assign Issue, and execute mandatory environment setup
 assign_issue() {
     local issue_number="$1"
     local issue_title="$2"
 
-    echo "=== Issue #${issue_number} 割り当て処理開始 ==="
-    echo "タイトル: ${issue_title}"
+    echo "=== Issue #${issue_number} assignment process started ==="
+    echo "Title: ${issue_title}"
 
-    # 利用可能なWorkerを探す
+    # Find available Worker
     local assigned_worker=""
     for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         if [ ! -f ./tmp/worker-status/worker${worker_num}_busy.txt ]; then
@@ -75,76 +75,76 @@ assign_issue() {
         fi
     done
 
-    # 利用可能なWorkerがない場合
+    # When no Worker is available
     if [ -z "$assigned_worker" ]; then
-        echo "❌ エラー: 利用可能なWorkerがありません"
-        echo "現在のWorker状況:"
+        echo "❌ Error: No available Workers"
+        echo "Current Worker status:"
         check_worker_load
         return 1
     fi
 
-    echo "✅ Worker${assigned_worker}に割り当て開始"
+    echo "✅ Starting assignment to Worker${assigned_worker}"
 
-    # GitHub上で現在ログインしているユーザーにAssign
-    echo "GitHub Issue #${issue_number}を@meにAssign中..."
+    # Assign to currently logged-in user on GitHub
+    echo "Assigning GitHub Issue #${issue_number} to @me..."
     if ! gh issue edit $issue_number --add-assignee @me; then
-        echo "❌ エラー: GitHub Issue Assignment失敗"
+        echo "❌ Error: GitHub Issue Assignment failed"
         return 1
     fi
 
-    # Worker環境セットアップを実行（必須）
-    echo "=== Worker${assigned_worker}環境セットアップ実行（必須処理） ==="
+    # Execute Worker environment setup (mandatory)
+    echo "=== Worker${assigned_worker} environment setup execution (mandatory process) ==="
     if setup_worker_environment "$assigned_worker" "$issue_number" "$issue_title"; then
-        echo "✅ Issue #${issue_number}のWorker${assigned_worker}への割り当て完了"
-        echo "環境セットアップ成功: $(date)" > "./tmp/worker-status/worker${assigned_worker}_setup_success.txt"
+        echo "✅ Issue #${issue_number} assignment to Worker${assigned_worker} completed"
+        echo "Environment setup success: $(date)" > "./tmp/worker-status/worker${assigned_worker}_setup_success.txt"
         return 0
     else
-        echo "❌ エラー: Worker${assigned_worker}環境セットアップ失敗"
-        echo "GitHub Issue Assignment を取り消します..."
+        echo "❌ Error: Worker${assigned_worker} environment setup failed"
+        echo "Canceling GitHub Issue Assignment..."
 
-        # GitHub Assignmentを取り消し
+        # Cancel GitHub Assignment
         gh issue edit $issue_number --remove-assignee @me
 
-        # Worker状況ファイルがあれば削除
+        # Remove Worker status file if exists
         rm -f "./tmp/worker-status/worker${assigned_worker}_busy.txt"
 
-        echo "環境セットアップ失敗のためIssue #${issue_number}の割り当てを中止しました"
+        echo "Issue #${issue_number} assignment canceled due to environment setup failure"
         return 1
     fi
 }
 
 ```
 
-## Worker環境セットアップ
+## Worker Environment Setup
 
-### 0. 共通関数
+### 0. Common Functions
 ```bash
-# Worker Claudeの実行状態確認関数
+# Worker Claude execution status check function
 check_worker_claude_status() {
     local worker_num="$1"
     local claude_running=false
 
-    # tmuxペインが存在するかチェック
+    # Check if tmux pane exists
     if tmux list-panes -t "multiagent:0.${worker_num}" >/dev/null 2>&1; then
-        # ペインの現在のコマンドを確認
+        # Check current command in pane
         local current_command=$(tmux display-message -p -t "multiagent:0.${worker_num}" "#{pane_current_command}")
 
         if [[ "$current_command" == "zsh" ]] || [[ "$current_command" == "bash" ]] || [[ "$current_command" == "sh" ]]; then
-            echo "ℹ️  worker${worker_num}はシェルモード（Claude未起動）: $current_command"
+            echo "ℹ️  worker${worker_num} is in shell mode (Claude not running): $current_command"
             claude_running=false
         elif [[ "$current_command" == "node" ]] || [[ "$current_command" == "claude" ]]; then
-            echo "✅ worker${worker_num}でClaude実行中を検出: $current_command"
+            echo "✅ Detected Claude running on worker${worker_num}: $current_command"
             claude_running=true
         else
-            echo "ℹ️  worker${worker_num}の不明なプロセス: $current_command (シェルモードとして扱います)"
+            echo "ℹ️  Unknown process on worker${worker_num}: $current_command (treating as shell mode)"
             claude_running=false
         fi
     else
-        echo "❌ worker${worker_num}ペインが見つかりません"
+        echo "❌ worker${worker_num} pane not found"
         return 2
     fi
 
-    # 戻り値: 0=Claude実行中, 1=シェルモード, 2=ペイン不存在
+    # Return values: 0=Claude running, 1=shell mode, 2=pane not exists
     if [ "$claude_running" = true ]; then
         return 0
     else
@@ -152,147 +152,147 @@ check_worker_claude_status() {
     fi
 }
 
-# Worker Claude安全終了関数
+# Worker Claude safe exit function
 safe_exit_worker_claude() {
     local worker_num="$1"
 
-    echo "worker${worker_num}のClaude状態確認中..."
+    echo "Checking worker${worker_num} Claude status..."
     local current_command=$(tmux display-message -p -t "multiagent:0.${worker_num}" "#{pane_current_command}")
 
     if [[ "$current_command" == "zsh" ]] || [[ "$current_command" == "bash" ]] || [[ "$current_command" == "sh" ]]; then
-        echo "ℹ️  worker${worker_num}は既にシェルモード: $current_command (終了処理スキップ)"
+        echo "ℹ️  worker${worker_num} is already in shell mode: $current_command (skipping exit process)"
         return 1
     elif [[ "$current_command" == "node" ]] || [[ "$current_command" == "claude" ]]; then
-        echo "✅ worker${worker_num}でClaude系プロセス実行中: $current_command"
-        echo "Claudeからの安全終了指示送信中..."
+        echo "✅ Claude-related process running on worker${worker_num}: $current_command"
+        echo "Sending safe exit instruction from Claude..."
         ./claude/agent-send.sh worker${worker_num} "exit"
         sleep 3
-        echo "✅ Claude終了指示完了"
+        echo "✅ Claude exit instruction completed"
         return 0
     else
-        echo "ℹ️  worker${worker_num}の不明なプロセス: $current_command (終了処理スキップ)"
+        echo "ℹ️  Unknown process on worker${worker_num}: $current_command (skipping exit process)"
         return 1
     fi
 }
 ```
 
-### 1. Worker初期化処理
+### 1. Worker Initialization Process
 ```bash
 setup_worker_environment() {
     local worker_num="$1"
     local issue_number="$2"
     local issue_title="$3"
 
-    echo "=== Worker${worker_num} 環境セットアップ開始 ==="
+    echo "=== Worker${worker_num} environment setup started ==="
     echo "Issue #${issue_number}: ${issue_title}"
 
-    # 1. Claude安全終了処理
-    echo "=== Worker${worker_num} Claude安全終了処理 ==="
+    # 1. Claude safe exit process
+    echo "=== Worker${worker_num} Claude safe exit process ==="
     safe_exit_worker_claude "$worker_num"
 
-    # 2. worktreeディレクトリの作成
+    # 2. Create worktree directory
     local worktree_path="worktree/issue-${issue_number}"
 
     if git worktree list | grep -q "${worktree_path}"; then
-        echo "既存のworktree/${issue_number}を使用します"
+        echo "Using existing worktree/${issue_number}"
     else
-        echo "新しいworktree/issue-${issue_number}を作成中..."
+        echo "Creating new worktree/issue-${issue_number}..."
 
-        # mainブランチが最新であることを確認
+        # Ensure main branch is up to date
         git checkout main
         git pull origin main
 
-        # 新しいworktreeを作成
+        # Create new worktree
         git worktree add ${worktree_path} -b issue-${issue_number}
     fi
 
-    # 3. worktree安全性チェック
-    echo "=== worktree安全性チェック ==="
+    # 3. Worktree safety check
+    echo "=== worktree safety check ==="
     if [ ! -d "${worktree_path}" ]; then
-        echo "❌ エラー: worktreeディレクトリが作成されていません"
+        echo "❌ Error: worktree directory not created"
         return 1
     fi
 
-    # worktreeが正しく分離されているかチェック
+    # Check if worktree is properly isolated
     local worktree_git_dir=$(cd ${worktree_path} && git rev-parse --git-dir)
     if [[ $worktree_git_dir == *".git/worktrees/"* ]]; then
-        echo "✅ worktreeが正しく分離されています: $worktree_git_dir"
+        echo "✅ worktree is properly isolated: $worktree_git_dir"
     else
-        echo "⚠️  警告: worktreeが期待通りに分離されていません"
+        echo "⚠️  Warning: worktree is not isolated as expected"
     fi
 
-    # 4. worktreeディレクトリでClaude Code起動
-    echo "=== Worker${worker_num} Claude起動処理 ==="
-    echo "worktree/issue-${issue_number}ディレクトリでClaude Codeを起動します"
+    # 4. Start Claude Code in worktree directory
+    echo "=== Worker${worker_num} Claude startup process ==="
+    echo "Starting Claude Code in worktree/issue-${issue_number} directory"
     echo ""
-    echo "【重要な安全対策】"
-    echo "- workerは ${PWD}/${worktree_path} ディレクトリから外に出ることを禁止"
-    echo "- mainブランチの直接編集を禁止"
-    echo "- 作業はissue-${issue_number}ブランチでのみ実行"
+    echo "【Important Safety Measures】"
+    echo "- worker is prohibited from leaving ${PWD}/${worktree_path} directory"
+    echo "- Direct editing of main branch is prohibited"
+    echo "- Work is only allowed on issue-${issue_number} branch"
     echo ""
-    echo "【自動実行手順】"
+    echo "【Automatic Execution Steps】"
 
-    echo "1. worktreeディレクトリに移動"
+    echo "1. Move to worktree directory"
     tmux send-keys -t "multiagent:0.${worker_num}" "cd ${PWD}/${worktree_path}" C-m
 
-    echo "2. worktreeディレクトリでClaude Code起動"
+    echo "2. Start Claude Code in worktree directory"
     tmux send-keys -t "multiagent:0.${worker_num}" "claude ${WORKER_ARGS:-\"--dangerously-skip-permissions\"}" C-m
     sleep 3
 
     echo ""
-    echo "3. worker${worker_num}セッションが起動したら、以下のメッセージを送信:"
+    echo "3. Once worker${worker_num} session starts, send the following message:"
     echo ""
-    echo "=== Worker${worker_num}用メッセージ ==="
-    echo "あなたはworker${worker_num}です。"
+    echo "=== Message for Worker${worker_num} ==="
+    echo "You are worker${worker_num}."
     echo ""
     echo "【GitHub Issue Assignment】"
     echo "Issue #${issue_number}: ${issue_title}"
     echo ""
-    echo "現在のディレクトリは既にissue-${issue_number}ブランチのworktree環境です。"
+    echo "The current directory is already the worktree environment for issue-${issue_number} branch."
     echo ""
-    echo "以下の手順で作業を開始してください："
+    echo "Please start work following these steps:"
     echo ""
-    echo "1. Issue詳細確認"
+    echo "1. Check Issue details"
     echo "   \`\`\`bash"
     echo "   gh issue view ${issue_number}"
     echo "   \`\`\`"
     echo ""
-    echo "2. 作業環境確認"
+    echo "2. Verify work environment"
     echo "   \`\`\`bash"
-    echo "   pwd              # 現在のディレクトリ確認"
-    echo "   git branch       # 現在のブランチ確認"
-    echo "   git status       # 作業ツリーの状態確認"
+    echo "   pwd              # Check current directory"
+    echo "   git branch       # Check current branch"
+    echo "   git status       # Check working tree status"
     echo "   \`\`\`"
     echo ""
-    echo "3. タスクリスト作成"
-    echo "   - Issue内容を分析し、やることリストを作成"
-    echo "   - 実装手順を明確化"
-    echo "   - 必要な技術調査を実施"
+    echo "3. Create task list"
+    echo "   - Analyze Issue content and create todo list"
+    echo "   - Clarify implementation steps"
+    echo "   - Conduct necessary technical research"
     echo ""
-    echo "作業準備が完了したら、Issue解決に向けて実装を開始してください。"
-    echo "進捗や質問があれば随時報告してください。"
+    echo "Once work preparation is complete, start implementation to resolve the Issue."
+    echo "Report progress or questions at any time."
     echo "=========================="
     echo ""
-    echo "上記のworker${worker_num}セッション起動が完了したら、Enterを押してください..."
+    echo "Press Enter once the above worker${worker_num} session startup is complete..."
     read -r
 
-    # 5. Worker状況ファイル作成
-    echo "5. Worker状況ファイル作成"
+    # 5. Create Worker status file
+    echo "5. Create Worker status file"
     mkdir -p ./tmp/worker-status
     echo "Issue #${issue_number}: ${issue_title}" > ./tmp/worker-status/worker${worker_num}_busy.txt
 
-    echo "=== Worker${worker_num} セットアップ完了 ==="
+    echo "=== Worker${worker_num} setup completed ==="
 }
 ```
 
-### 2. 複数Issue防止機能
+### 2. Multiple Issue Prevention Feature
 ```bash
-# Worker重複割り当て防止
+# Prevent Worker duplicate assignment
 check_worker_availability() {
     local worker_num="$1"
 
     if [ -f ./tmp/worker-status/worker${worker_num}_busy.txt ]; then
-        echo "Worker${worker_num}は既に作業中です: $(cat ./tmp/worker-status/worker${worker_num}_busy.txt)"
+        echo "Worker${worker_num} is already working: $(cat ./tmp/worker-status/worker${worker_num}_busy.txt)"
         return 1
     fi
 
@@ -300,320 +300,320 @@ check_worker_availability() {
 }
 ```
 
-## Worker報告処理
+## Worker Report Processing
 
-### Workerからの報告受信フロー
+### Worker Report Reception Flow
 
-Issue Managerは以下の方法でWorkerからの報告を受信します：
+Issue Manager receives reports from Workers through the following methods:
 
-#### 1. **リアルタイム報告受信**
-Workerから`agent-send.sh`でメッセージが送信されると、Issue Manager画面に直接表示されます。
+#### 1. **Real-time Report Reception**
+When Workers send messages via `agent-send.sh`, they are displayed directly on the Issue Manager screen.
 
-#### 2. **報告の種類**
-- **課題報告**: 実装中に問題が発生した場合
-- **進捗報告**: 定期的な進捗アップデート（GitHub Issueコメント経由）
-- **完了報告**: Issue解決とPR作成完了時
+#### 2. **Types of Reports**
+- **Problem Reports**: When issues occur during implementation
+- **Progress Reports**: Regular progress updates (via GitHub Issue comments)
+- **Completion Reports**: When Issue resolution and PR creation are completed
 
-### 1. 課題報告受信処理
+### 1. Problem Report Reception Processing
 ```bash
-# Workerから課題報告を受信した時の対応
+# Handle problem reports received from Workers
 handle_worker_issue_report() {
     local worker_num="$1"
     local issue_number="$2"
     local problem_description="$3"
 
-    echo "Worker${worker_num}からIssue #${issue_number}の課題報告を受信"
-    echo "問題内容: ${problem_description}"
+    echo "Received problem report for Issue #${issue_number} from Worker${worker_num}"
+    echo "Problem details: ${problem_description}"
 
-    # GitHub Issueに課題を記録
-    gh issue comment $issue_number --body "## ⚠️ 実装中の課題報告 - Worker${worker_num}
+    # Record problem in GitHub Issue
+    gh issue comment $issue_number --body "## ⚠️ Implementation Problem Report - Worker${worker_num}
 
-**発生した問題**:
+**Problem Occurred**:
 ${problem_description}
 
-**対応状況**: Issue Manager確認中
+**Response Status**: Issue Manager reviewing
 
-**次のステップ**: 解決策を検討し、Workerに指示します。
+**Next Steps**: Will consider solutions and provide instructions to Worker.
 
 ---
-*Issue Manager による自動記録*"
+*Automatically recorded by Issue Manager*"
 
-    # Workerに対応方針を返信（手動または自動）
-    echo "Worker${worker_num}への対応方針を検討してください："
-    echo "1. 技術的なアドバイスを提供"
-    echo "2. 別のアプローチを提案"
-    echo "3. 他のWorkerに再アサイン"
-    echo "4. Issue要件の明確化"
+    # Response policy to Worker (manual or automatic)
+    echo "Please consider response policy for Worker${worker_num}:"
+    echo "1. Provide technical advice"
+    echo "2. Suggest alternative approach"
+    echo "3. Reassign to another Worker"
+    echo "4. Clarify Issue requirements"
 
-    # 対応例（手動で実行）
-    # ./claude/agent-send.sh worker${worker_num} "課題について以下の解決策を試してください：[具体的な指示]"
+    # Response example (execute manually)
+    # ./claude/agent-send.sh worker${worker_num} "Please try the following solution for the problem: [specific instructions]"
 }
 ```
 
-### 2. 完了報告受信処理
+### 2. Completion Report Reception Processing
 ```bash
-# Workerからの完了報告を受信した時の処理
+# Process completion reports received from Workers
 handle_worker_completion() {
     local worker_num="$1"
     local issue_number="$2"
 
-    echo "Worker${worker_num}からIssue #${issue_number}の完了報告を受信"
+    echo "Received completion report for Issue #${issue_number} from Worker${worker_num}"
 
-    # GitHub Issue確認
-    echo "=== GitHub Issue確認 ==="
+    # Check GitHub Issue
+    echo "=== GitHub Issue Check ==="
     gh issue view $issue_number --json state,comments,title
 
-    # Pull Request確認
-    echo "=== Pull Request確認 ==="
+    # Check Pull Request
+    echo "=== Pull Request Check ==="
     gh pr list --head issue-${issue_number} --json number,title,state,url
 
-    # PR詳細確認
+    # Check PR details
     if pr_number=$(gh pr list --head issue-${issue_number} --json number --jq '.[0].number'); then
-        echo "=== PR #${pr_number} 詳細 ==="
+        echo "=== PR #${pr_number} Details ==="
         gh pr view $pr_number --json title,body,commits,files
 
-        # PRの確認結果をWorkerに通知
-        ./claude/agent-send.sh worker${worker_num} "PR #${pr_number}を確認しました。
+        # Notify Worker of PR check results
+        ./claude/agent-send.sh worker${worker_num} "Checked PR #${pr_number}.
 
-【確認結果】
-- Issue解決状況: 確認中
-- コード変更内容: レビュー中
-- 次のアクション: [承認/修正依頼/追加作業]
+【Check Results】
+- Issue resolution status: Under review
+- Code changes: Under review
+- Next action: [Approval/Correction request/Additional work]
 
-詳細な確認結果は後ほど報告します。"
+Detailed check results will be reported later."
 
-        # ローカル動作確認の実行（オプション）
-        read -p "ローカル動作確認を実行しますか？ (y/N): " -n 1 -r
+        # Execute local verification (optional)
+        read -p "Execute local verification? (y/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             local_verification $issue_number
         fi
     fi
 
-    # Worker Claude セッション終了とworktree環境クリーンアップ
-    echo "=== Worker${worker_num} Claude終了とクリーンアップ ==="
+    # Worker Claude session termination and worktree environment cleanup
+    echo "=== Worker${worker_num} Claude termination and cleanup ==="
 
-    # 1. Worker Claude安全終了
-    echo "1. worker${worker_num}のClaude安全終了処理"
+    # 1. Worker Claude safe termination
+    echo "1. worker${worker_num} Claude safe termination process"
     safe_exit_worker_claude "$worker_num"
 
-    # 2. 元のルートディレクトリに戻る
+    # 2. Return to original root directory
     tmux send-keys -t "multiagent:0.${worker_num}" "cd $(pwd)" C-m
 
-    # 3. 待機メッセージ表示
-    tmux send-keys -t "multiagent:0.${worker_num}" "echo '=== worker${worker_num} 待機中 ==='" C-m
-    tmux send-keys -t "multiagent:0.${worker_num}" "echo 'Issue Managerからの次の割り当てをお待ちください'" C-m
+    # 3. Display standby message
+    tmux send-keys -t "multiagent:0.${worker_num}" "echo '=== worker${worker_num} standby ===' " C-m
+    tmux send-keys -t "multiagent:0.${worker_num}" "echo 'Waiting for next assignment from Issue Manager'" C-m
 
-    # 4. Worker状況ファイル削除（作業完了）
+    # 4. Delete Worker status file (work completed)
     rm -f ./tmp/worker-status/worker${worker_num}_busy.txt
     rm -f ./tmp/worker-status/worker${worker_num}_setup_success.txt
-    # 5. Worktreeクリーンアップ（必要に応じて）
+    # 5. Worktree cleanup (as needed)
     if [ -d "worktree/issue-${issue_number}" ]; then
-        echo "worktree/issue-${issue_number}をクリーンアップ中..."
+        echo "Cleaning up worktree/issue-${issue_number}..."
         git worktree remove worktree/issue-${issue_number} --force 2>/dev/null || true
         rm -rf worktree/issue-${issue_number} 2>/dev/null || true
     fi
 }
 ```
 
-### 3. 進捗モニタリング
+### 3. Progress Monitoring
 ```bash
-# Worker進捗の定期確認
+# Regular Worker progress check
 monitor_worker_progress() {
-    echo "=== Worker進捗確認 ==="
+    echo "=== Worker Progress Check ==="
 
     for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         if [ -f "./tmp/worker-status/worker${worker_num}_busy.txt" ]; then
             local issue_info=$(cat "./tmp/worker-status/worker${worker_num}_busy.txt")
-            echo "Worker${worker_num}: 作業中 - ${issue_info}"
+            echo "Worker${worker_num}: Working - ${issue_info}"
 
-            # GitHub Issueの最新コメントを確認
+            # Check latest GitHub Issue comment
             local issue_number=$(echo "$issue_info" | grep -o '#[0-9]\+' | cut -c2-)
             if [ -n "$issue_number" ]; then
-                echo "  最新のIssueコメント:"
+                echo "  Latest Issue comment:"
                 gh issue view $issue_number --json comments --jq '.comments[-1].body' | head -3
             fi
         else
-            echo "Worker${worker_num}: 利用可能"
+            echo "Worker${worker_num}: Available"
         fi
     done
 }
 ```
 
-### 2. ローカル動作確認（オプション）
+### 2. Local Verification (Optional)
 ```bash
-# ローカル環境での動作確認
+# Local environment verification
 local_verification() {
     local issue_number="$1"
     local branch_name="issue-${issue_number}"
 
-    # local-verification.mdファイルの存在確認
+    # Check existence of local-verification.md file
     if [ ! -f "./local-verification.md" ]; then
-        echo "local-verification.mdが存在しないため、ローカル動作確認をスキップします"
+        echo "local-verification.md does not exist, skipping local verification"
         return 0
     fi
 
-    # ファイルの第一行目がskip:trueの場合
+    # If first line has skip:true
     if head -n 1 "./local-verification.md" | grep -q "<!-- skip:true -->"; then
-        echo "local-verification.mdの第一行目に<!-- skip:true -->が設定されているため、ローカル動作確認をスキップします"
+        echo "<!-- skip:true --> is set in first line of local-verification.md, skipping local verification"
         return 0
     fi
 
-    echo "=== ローカル動作確認開始 ==="
-    echo "チェック項目: local-verification.md に基づいて確認を実施します"
+    echo "=== Local Verification Started ==="
+    echo "Check items: Will perform verification based on local-verification.md"
     echo ""
 
-    # worktreeディレクトリを探してそこに移動
+    # Find worktree directory and move there
     local worktree_dir=$(git worktree list | grep "issue-${issue_number}" | awk '{print $1}')
     if [ -z "$worktree_dir" ]; then
-        echo "❌ Issue #${issue_number}のworktreeディレクトリが見つかりません"
-        echo "Workerがまだ環境セットアップを完了していない可能性があります"
+        echo "❌ worktree directory for Issue #${issue_number} not found"
+        echo "Worker may not have completed environment setup yet"
         return 1
     fi
 
-    echo "📁 Worktreeディレクトリ: $worktree_dir"
+    echo "📁 Worktree directory: $worktree_dir"
     echo ""
-    echo "📋 手順:"
-    echo "1. worktreeディレクトリに移動: cd $worktree_dir"
-    echo "2. local-verification.md の環境セットアップ手順を確認"
-    echo "3. 記載されている手順に従ってサーバーを起動"
-    echo "4. チェック項目に基づいて動作確認を実施"
-    echo "5. 問題がなければ確認完了"
+    echo "📋 Steps:"
+    echo "1. Move to worktree directory: cd $worktree_dir"
+    echo "2. Check environment setup steps in local-verification.md"
+    echo "3. Start server following the listed steps"
+    echo "4. Perform verification based on check items"
+    echo "5. Complete verification if no problems"
     echo ""
-    echo "📄 確認ファイル: local-verification.md"
-    echo "🌐 想定URL: http://localhost:3000 (プロジェクトに応じて変更)"
+    echo "📄 Verification file: local-verification.md"
+    echo "🌐 Expected URL: http://localhost:3000 (change according to project)"
     echo ""
 
-    # worktreeディレクトリに移動
+    # Move to worktree directory
     cd "$worktree_dir"
-    echo "📍 現在の作業ディレクトリ: $(pwd)"
+    echo "📍 Current working directory: $(pwd)"
     echo ""
-    echo "動作確認を開始してください。完了したらEnterを押してください。"
+    echo "Please start verification. Press Enter when completed."
     read -r
 
-    # 元のディレクトリに戻る
+    # Return to original directory
     cd - > /dev/null
 
-    # local-verification.mdの内容を取得
+    # Get contents of local-verification.md
     local checklist_content=$(cat ./local-verification.md)
 
-    # 確認結果をIssueにコメント
-    local verification_comment="## 🔍 ローカル動作確認完了
+    # Comment verification results on Issue
+    local verification_comment="## 🔍 Local Verification Completed
 
-**動作確認日時**: $(date)
-**確認環境**: localhost:3000
-**ブランチ**: ${branch_name}
+**Verification Date/Time**: $(date)
+**Verification Environment**: localhost:3000
+**Branch**: ${branch_name}
 
-### 確認項目
-以下のチェックリストに基づいて確認を実施しました：
+### Check Items
+Verification was performed based on the following checklist:
 
 \`\`\`markdown
 ${checklist_content}
 \`\`\`
 
-### 確認結果
-- ✅ 基本機能: 正常動作
-- ✅ 画面表示: 問題なし
-- ✅ パフォーマンス: 良好
+### Verification Results
+- ✅ Basic functions: Normal operation
+- ✅ Screen display: No problems
+- ✅ Performance: Good
 
-### 次のステップ
-- [ ] マージ承認
-- [ ] 修正依頼
-- [ ] 追加作業
+### Next Steps
+- [ ] Merge approval
+- [ ] Correction request
+- [ ] Additional work
 
 ---
-*Issue Manager による自動確認*"
+*Automatically verified by Issue Manager*"
 
     gh issue comment $issue_number --body "$verification_comment"
 }
 ```
 
-## Issue管理の継続的サイクル
-### 1. 定期的なIssue監視（フィルタ条件対応）
+## Continuous Cycle of Issue Management
+### 1. Regular Issue Monitoring (Filter Condition Support)
 ```bash
-# フィルタ条件に基づくIssue監視
-# 使用例:
-# monitor_issues_with_filter ""                    # 自分にアサインされたIssue（デフォルト）
-# monitor_issues_with_filter "no:assignee"         # 未割り当てIssue
-# monitor_issues_with_filter "no:assignee label:bug"           # bugラベルの未割り当てIssue
-# monitor_issues_with_filter "no:assignee label:enhancement"   # enhancementラベルの未割り当てIssue
-# monitor_issues_with_filter "assignee:@me"        # 自分にアサインされたIssue（明示的指定）
-# monitor_issues_with_filter "no:assignee label:\"help wanted\""   # 未割り当て且つヘルプ募集
+# Issue monitoring based on filter conditions
+# Usage examples:
+# monitor_issues_with_filter ""                    # Issues assigned to me (default)
+# monitor_issues_with_filter "no:assignee"         # Unassigned Issues
+# monitor_issues_with_filter "no:assignee label:bug"           # Unassigned Issues with bug label
+# monitor_issues_with_filter "no:assignee label:enhancement"   # Unassigned Issues with enhancement label
+# monitor_issues_with_filter "assignee:@me"        # Issues assigned to me (explicit specification)
+# monitor_issues_with_filter "no:assignee label:\"help wanted\""   # Unassigned and help wanted
 monitor_issues_with_filter() {
     local filter_condition="$1"
-    echo "=== GitHub Issue監視開始 ==="
+    echo "=== GitHub Issue Monitoring Started ==="
 
-    # フィルタ条件の表示
+    # Display filter condition
     if [ -n "$filter_condition" ]; then
-        echo "フィルタ条件: $filter_condition"
+        echo "Filter condition: $filter_condition"
     else
-        echo "フィルタ条件: なし（自分にアサインされたIssue）"
+        echo "Filter condition: None (Issues assigned to me)"
     fi
 
-    # 一時ファイルのクリーンアップ
+    # Cleanup temporary files
     mkdir -p ./tmp
     rm -f ./tmp/filtered_issues.json
 
-    # フィルタ条件に基づいてIssueを取得
+    # Get Issues based on filter condition
     if [ -n "$filter_condition" ]; then
-        # フィルタ条件ありの場合
+        # With filter condition
         gh issue list --state open --search "$filter_condition" --json number,title,assignees,labels > ./tmp/filtered_issues.json
     else
-        # フィルタ条件なしの場合（デフォルト：自分にアサインされたIssue）
+        # Without filter condition (default: Issues assigned to me)
         gh issue list --state open --search "assignee:@me" --json number,title,assignees,labels > ./tmp/filtered_issues.json
     fi
 
-    # フィルタされたIssueがある場合
+    # If there are filtered Issues
     if [ -s ./tmp/filtered_issues.json ]; then
         local issue_count=$(jq length ./tmp/filtered_issues.json)
-        echo "条件に合致するIssueが ${issue_count}件 見つかりました"
+        echo "Found ${issue_count} Issues matching the conditions"
 
-        # 各Issueを処理
+        # Process each Issue
         jq -r '.[] | "\(.number):\(.title)"' ./tmp/filtered_issues.json | while read -r issue_line; do
             issue_num=$(echo "$issue_line" | cut -d: -f1)
             issue_title=$(echo "$issue_line" | cut -d: -f2-)
 
             echo ""
-            echo "=== Issue #${issue_num} 処理開始 ==="
-            echo "タイトル: ${issue_title}"
+            echo "=== Issue #${issue_num} processing started ==="
+            echo "Title: ${issue_title}"
 
-            # Issue詳細表示
-            echo "--- Issue詳細 ---"
+            # Display Issue details
+            echo "--- Issue Details ---"
             gh issue view $issue_num --json title,body,labels,assignees | jq -r '
                 "Title: " + .title,
                 "Labels: " + (.labels | map(.name) | join(", ")),
-                "Assignees: " + (if .assignees | length > 0 then (.assignees | map(.login) | join(", ")) else "未割り当て" end),
+                "Assignees: " + (if .assignees | length > 0 then (.assignees | map(.login) | join(", ")) else "Unassigned" end),
                 "Body preview: " + (.body | .[0:200] + (if length > 200 then "..." else "" end))
             '
 
-            # TODO: PR存在確認
+            # TODO: Check PR existence
 
-            # 割り当て確認
+            # Assignment confirmation
             echo ""
-            read -p "Issue #${issue_num} を自分にアサインしますか？ (y/N): " -n 1 -r
+            read -p "Assign Issue #${issue_num} to yourself? (y/N): " -n 1 -r
             echo
             if [[ $REPLY =~ ^[Yy]$ ]]; then
                 assign_issue "$issue_num" "$issue_title"
             else
-                echo "Issue #${issue_num} をスキップしました"
+                echo "Skipped Issue #${issue_num}"
             fi
         done
     else
-        echo "条件に合致するIssueはありません"
+        echo "No Issues match the conditions"
     fi
 
-    # 一時ファイルクリーンアップ
+    # Cleanup temporary files
     rm -f ./tmp/filtered_issues.json
 }
 
 
 ```
 
-### 2. Worker負荷バランシング
+### 2. Worker Load Balancing
 ```bash
-# Worker負荷確認（環境セットアップ状況も含む）
+# Check Worker load (including environment setup status)
 check_worker_load() {
-    echo "=== Worker負荷状況 ==="
+    echo "=== Worker Load Status ==="
     for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         if [ -f ./tmp/worker-status/worker${worker_num}_busy.txt ]; then
             local issue_info=$(cat ./tmp/worker-status/worker${worker_num}_busy.txt)
@@ -621,81 +621,81 @@ check_worker_load() {
 
             if [ -f "./tmp/worker-status/worker${worker_num}_setup_success.txt" ]; then
                 local setup_time=$(cat "./tmp/worker-status/worker${worker_num}_setup_success.txt")
-                setup_status=" [環境セットアップ済み: ${setup_time}]"
+                setup_status=" [Environment setup completed: ${setup_time}]"
             else
-                setup_status=" [⚠️ 環境セットアップ未完了]"
+                setup_status=" [⚠️ Environment setup incomplete]"
             fi
 
-            echo "Worker${worker_num}: 作業中 - ${issue_info}${setup_status}"
+            echo "Worker${worker_num}: Working - ${issue_info}${setup_status}"
         else
-            echo "Worker${worker_num}: 利用可能"
+            echo "Worker${worker_num}: Available"
         fi
     done
 }
 
-# Worker環境セットアップ状況の詳細確認
+# Detailed check of Worker environment setup status
 check_worker_environment_status() {
-    echo "=== Worker環境セットアップ状況詳細 ==="
+    echo "=== Worker Environment Setup Status Details ==="
     for ((worker_num=1; worker_num<=WORKER_COUNT; worker_num++)); do
         echo "--- Worker${worker_num} ---"
 
         if [ -f "./tmp/worker-status/worker${worker_num}_busy.txt" ]; then
             local issue_info=$(cat "./tmp/worker-status/worker${worker_num}_busy.txt")
-            echo "割り当て Issue: ${issue_info}"
+            echo "Assigned Issue: ${issue_info}"
 
             if [ -f "./tmp/worker-status/worker${worker_num}_setup_success.txt" ]; then
                 local setup_time=$(cat "./tmp/worker-status/worker${worker_num}_setup_success.txt")
-                echo "環境セットアップ: ✅ 成功 (${setup_time})"
+                echo "Environment Setup: ✅ Success (${setup_time})"
             else
-                echo "環境セットアップ: ❌ 未完了または失敗"
-                echo "⚠️  このWorkerは環境セットアップが完了していません！"
+                echo "Environment Setup: ❌ Incomplete or failed"
+                echo "⚠️  This Worker has not completed environment setup!"
             fi
         else
-            echo "状況: 利用可能（待機中）"
+            echo "Status: Available (standby)"
         fi
         echo ""
     done
 }
 ```
 
-## フィルタ条件を使った実践的な使用例
+## Practical Usage Examples with Filter Conditions
 
-### シナリオ別のフィルタ活用
+### Filter Usage by Scenario
 ```bash
-# 1. 自分の作業進捗を確認したい場合（デフォルト）
+# 1. When you want to check your work progress (default)
 monitor_issues_with_filter ""
 
-# 2. 新しいIssueを探したい場合
+# 2. When you want to find new Issues
 monitor_issues_with_filter "no:assignee"
 
-# 3. 自分のバグ修正タスクを確認したい場合
+# 3. When you want to check your bug fix tasks
 monitor_issues_with_filter "assignee:@me label:bug"
 ```
 
-## 重要なポイント
-- 各Workerが同時に1つのIssueのみ処理するよう厳密管理
-- GitHub IssueとPRの状況を常に把握
-- **Worker環境セットアップの強制実行と失敗時の安全な回復**
-- **環境セットアップなしでのIssue割り当てを完全防止**
-- 進捗の可視化と適切なフィードバック
-- 品質確保のためのローカル確認プロセス
-- 継続的なIssue監視と効率的な割り当て
-- **フィルタ条件を活用した効率的なIssue管理**
+## Important Points
+- Strict management so each Worker processes only one Issue at a time
+- Always understand GitHub Issue and PR status
+- **Mandatory execution of Worker environment setup and safe recovery on failure**
+- **Complete prevention of Issue assignment without environment setup**
+- Progress visualization and appropriate feedback
+- Local verification process for quality assurance
+- Continuous Issue monitoring and efficient assignment
+- **Efficient Issue management using filter conditions**
 
-## 使用ガイドライン
+## Usage Guidelines
 
-### Issue割り当て時の推奨手順
-1. **必須**: `assign_issue()` を使用
-2. **推奨**: 割り当て前に `check_worker_load()` でWorker状況を確認
-3. **推奨**: 定期的に `check_worker_environment_status()` で環境セットアップ状況を確認
+### Recommended Steps for Issue Assignment
+1. **Mandatory**: Use `assign_issue()`
+2. **Recommended**: Check Worker status with `check_worker_load()` before assignment
+3. **Recommended**: Regularly check environment setup status with `check_worker_environment_status()`
 
-### 環境セットアップ失敗時の対応
-1. エラーメッセージを確認し、原因を特定
-2. Workerの tmux セッション状況を確認
-3. 必要に応じて手動でセットアップ手順を実行
-4. 問題が解決したら再度 `assign_issue()` を実行
+### Response to Environment Setup Failures
+1. Check error messages and identify the cause
+2. Check Worker's tmux session status
+3. Manually execute setup steps as needed
+4. Execute `assign_issue()` again once the problem is resolved
 
-### 安全性確保のためのチェックポイント
-- ✅ Worker環境セットアップが完了していることを確認
-- ✅ GitHub Issue Assignmentとworktree環境が一致していることを確認
-- ✅ 失敗時にクリーンアップが適切に実行されていることを確認
+### Safety Checkpoints
+- ✅ Confirm Worker environment setup is completed
+- ✅ Confirm GitHub Issue Assignment and worktree environment match
+- ✅ Confirm cleanup is properly executed on failure
