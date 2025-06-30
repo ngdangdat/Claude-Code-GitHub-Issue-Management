@@ -165,11 +165,11 @@ graph TB
 **Install in your target Git repository**
 ```bash
 # Latest version (main branch)
-curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/ngdangdat/Claude-Code-GitHub-Issue-Management/main/install.sh | bash
 
 # Specific version (tag specification)
 GITHUB_REF=v1.0.0
-curl -sSL "https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/$GITHUB_REF/install.sh" | bash -s -- --ref "$GITHUB_REF"
+curl -sSL "https://raw.githubusercontent.com/ngdangdat/Claude-Code-GitHub-Issue-Management/$GITHUB_REF/install.sh" | bash -s -- --ref "$GITHUB_REF"
 ```
 
 ![](install.gif)

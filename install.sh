@@ -2,9 +2,9 @@
 
 # 🚀 GitHub Issue Management System - Enhanced Installation Script
 # Usage:
-#   curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash
-#   curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash -s -- --ref v1.0.0
-#   curl -sSL https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/main/install.sh | bash -s -- --ref feature-branch
+#   curl -sSL https://raw.githubusercontent.com/ngdangdat/Claude-Code-GitHub-Issue-Management/main/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/ngdangdat/Claude-Code-GitHub-Issue-Management/main/install.sh | bash -s -- --ref v1.0.0
+#   curl -sSL https://raw.githubusercontent.com/ngdangdat/Claude-Code-GitHub-Issue-Management/main/install.sh | bash -s -- --ref feature-branch
 
 set -e
 
@@ -131,7 +131,7 @@ set_installation_method() {
 # Download files from GitHub
 download_files() {
     local target_dir="$1"
-    local base_url="https://raw.githubusercontent.com/nakamasato/Claude-Code-GitHub-Issue-Management/$GITHUB_REF/claude"
+    local base_url="https://raw.githubusercontent.com/ngdangdat/Claude-Code-GitHub-Issue-Management/$GITHUB_REF/claude"
 
     log_info "Downloading files from GitHub..."
 
